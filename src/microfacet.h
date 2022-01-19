@@ -2,6 +2,7 @@
 
 #include "lajolla.h"
 #include "spectrum.h"
+#include "util.h"
 
 /// A microfacet model assumes that the surface is composed of infinitely many little mirrors/glasses.
 /// The orientation of the mirrors determines the amount of lights reflected.

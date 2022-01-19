@@ -1,11 +1,5 @@
 #include "../microfacet.h"
 
-
-Real sqr(Real val) {
-	return val * val;
-}
-
-
 Real g_w(Vector3 w, Frame frame, Real alpha_x, Real alpha_y) {
 	Vector3  w_l = to_local(frame, w);
 	Real lambda_w = (sqrt(1 + (sqr(w_l.x * alpha_x) + sqr(w_l.y * alpha_y))/sqr(w_l.z) ) - 1)/2;
