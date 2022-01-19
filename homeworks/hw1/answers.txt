@@ -10,7 +10,18 @@ reflectivity increases as we move towards the edge of the sphere. This can be ex
 term in the Lommel-Seeliger law. As the angle between the w_in/w_out and the normal increases (i.e. when we move towards
  of the edge of the sphere), the reflectance increases.
 
- When the lighting is aligned with the view direction, the base diffuse BRDF differs the most from the subsurface BRDF.
- This happens because when light is aligned with view direction, we see a lot of points on the sphere where the normal
- is close to the light direction leading to a higher volumetric absorption. When we observe more volumetric absorption,
- naturally, the BRDF differences are more apparent.
+When the lighting is aligned with the view direction, the base diffuse BRDF differs the most from the subsurface BRDF.
+This happens because when light is aligned with view direction, we see a lot of points on the sphere where the normal
+is close to the light direction leading to a higher volumetric absorption. When we observe more volumetric absorption,
+naturally, the BRDF differences are more apparent.
+
+2. Metal
+1. Ans. When we look at rendering of simple sphere, it can be seen that roughplastic has isotropic reflection but disney
+metal has some level of anisotropism when it reflects, leading to a slanted specular highlight.
+
+2. Ans. As the roughness is increased, the specular highlights start to dissipate. For very high roughness, they
+completely disappear. Also, anisotropism in the highlights reduces with increasing roughness. Increasing roughness may
+be thought of as moving towards the diffuse spectrum of materials.
+
+
+
