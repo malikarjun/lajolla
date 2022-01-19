@@ -1,0 +1,16 @@
+1. Diffuse
+1. Ans. When we look at rendering of simple sphere, it can be seen that the Lambertian BRDF has a uniform fall off and
+becomes darker as the half angle increases (as we move towards the edge of the sphere). For the disney diffuse as we
+move towards the edge of the sphere, the reflectance drops as well, but it gets higher at the grazing retro reflections,
+i.e. at the very edge of the sphere.
+
+2. Ans. When we look at rendering of simple sphere, it can be seen that the base diffuse term is close to lambertian
+except for the peak at grazing retro-reflection. However, the subsurface term is opposite of the lambertian i.e. the
+reflectivity increases as we move towards the edge of the sphere. This can be explained by the volumetric absorption
+term in the Lommel-Seeliger law. As the angle between the w_in/w_out and the normal increases (i.e. when we move towards
+ of the edge of the sphere), the reflectance increases.
+
+ When the lighting is aligned with the view direction, the base diffuse BRDF differs the most from the subsurface BRDF.
+ This happens because when light is aligned with view direction, we see a lot of points on the sphere where the normal
+ is close to the light direction leading to a higher volumetric absorption. When we observe more volumetric absorption,
+ naturally, the BRDF differences are more apparent.

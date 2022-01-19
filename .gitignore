@@ -45,3 +45,8 @@ build/
 
 #vscode related
 .vscode
+
+# CLion and Mac related
+.DS_Store
+.idea/
+cmake-build-debug/
