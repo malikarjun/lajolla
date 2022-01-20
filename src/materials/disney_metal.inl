@@ -1,10 +1,5 @@
 #include "../microfacet.h"
 
-Real g_w(Vector3 w, Frame frame, Real alpha_x, Real alpha_y) {
-	Vector3  w_l = to_local(frame, w);
-	Real lambda_w = (sqrt(1 + (sqr(w_l.x * alpha_x) + sqr(w_l.y * alpha_y))/sqr(w_l.z) ) - 1)/2;
-	return 1/(1 + lambda_w);
-}
 
 Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
     if (dot(vertex.geometry_normal, dir_in) < 0 ||
@@ -45,9 +40,10 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
 	Real h_l_term_denom = sqr(sqr(h_l.x/ alpha_x) + sqr(h_l.y/ alpha_y) + sqr(h_l.z));
 	Real d_m = 1/(c_PI * alpha_x * alpha_y * h_l_term_denom);
 
-	Real g_m = g_w(dir_in, frame, alpha_x, alpha_y) * g_w(dir_out, frame, alpha_x, alpha_y);
+	Real G = smith_masking_gtr2_anisotropic(to_local(frame, dir_in), alpha_x, alpha_y) *
+		smith_masking_gtr2_anisotropic(to_local(frame, dir_out), alpha_x, alpha_y);
 
-	return f_m * d_m * g_m / (4 * n_dot_in);
+	return f_m * d_m * G / (4 * n_dot_in);
 }
 
 Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {

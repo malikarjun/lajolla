@@ -27,8 +27,11 @@ be thought of as moving towards the diffuse spectrum of materials.
 1. Ans. When we look at the rendering of simple sphere, it can be seen that Disney Metal is more specular and
 anisotropic when compared to Disney clear coat for the similar alpha values.
 
+4. Glass
+1. Ans. With increasing eta, the material starts looking more like metal due to increased internal reflections. With
+decreasing eta, the material starts looking more transparent end glass like.
 
-4. Sheen
+5. Sheen
 1. Ans. For the simple sphere when light is on the z-axis, the image is all black. This is due to the fact that half
 vector and w_out are aligned which makes the (1 - h*w_out)^5 term zero for all points on the surface. However, if we
 change the light direction to lie on x-axis or y-axis, then the edges of the sphere seem to be lit. This is due to the
