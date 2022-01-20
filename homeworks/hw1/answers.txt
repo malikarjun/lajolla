@@ -28,4 +28,11 @@ be thought of as moving towards the diffuse spectrum of materials.
 anisotropic when compared to Disney clear coat for the similar alpha values.
 
 
+4. Sheen
+1. Ans. For the simple sphere when light is on the z-axis, the image is all black. This is due to the fact that half
+vector and w_out are aligned which makes the (1 - h*w_out)^5 term zero for all points on the surface. However, if we
+change the light direction to lie on x-axis or y-axis, then the edges of the sphere seem to be lit. This is due to the
+fact that (1 - h*w_out)^5 is no longer zero anymore and |n*w_out| is high at the edges.
+
+
 
