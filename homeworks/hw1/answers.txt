@@ -23,5 +23,9 @@ metal has some level of anisotropism when it reflects, leading to a slanted spec
 completely disappear. Also, anisotropism in the highlights reduces with increasing roughness. Increasing roughness may
 be thought of as moving towards the diffuse spectrum of materials.
 
+3. Clearcoat
+1. Ans. When we look at the rendering of simple sphere, it can be seen that Disney Metal is more specular and
+anisotropic when compared to Disney clear coat for the similar alpha values.
+
 
 
