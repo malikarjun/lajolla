@@ -154,15 +154,11 @@ sample_bsdf_op::operator()(const DisneyGlass &bsdf) const {
 	Real F = fresnel_dielectric(h_dot_in, eta);
 
 	if (rnd_param_w <= F) {
-		nreflect += 1;
-//		print(nreflect, "Reflection increment");
 		// Reflection
 		Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, half_vector) * half_vector);
 		// set eta to 0 since we are not transmitting
 		return BSDFSampleRecord{reflected, Real(0) /* eta */, roughness};
 	} else {
-		nrefract += 1;
-//		print(nrefract, "Refraction increment");
 
 		// Refraction
 		// https://en.wikipedia.org/wiki/Snell%27s_law#Vector_form

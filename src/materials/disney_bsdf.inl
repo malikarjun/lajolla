@@ -1,16 +1,16 @@
 #include "../microfacet.h"
 
 Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
-    bool reflect = dot(vertex.geometry_normal, dir_in) *
-                   dot(vertex.geometry_normal, dir_out) > 0;
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
-        frame = -frame;
-    }
-    // Homework 1: implement this!
+	bool reflect = dot(vertex.geometry_normal, dir_in) *
+				   dot(vertex.geometry_normal, dir_out) > 0;
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
+		frame = -frame;
+	}
+	// Homework 1: implement this!
 
-	Real eta = dot(frame.n, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
+	Real eta = dot(vertex.geometry_normal, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
 
 	Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real specular_transmission = eval(bsdf.specular_transmission, vertex.uv, vertex.uv_screen_size, texture_pool);
@@ -109,7 +109,7 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 		f_glass = base_color * (F * D * G) / (4 * fabs(dot(frame.n, dir_in)));
 	} else {
 		f_glass = sqrt(base_color) * ( (1 - F) * D * G * fabs(h_dot_out * h_dot_in)) /
-			   (fabs(n_dot_in) * sqr(h_dot_in + eta * h_dot_out));
+				  (fabs(n_dot_in) * sqr(h_dot_in + eta * h_dot_out));
 	}
 	/* Glass end */
 
@@ -125,7 +125,7 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 	Spectrum f_clearcoat = make_const_spectrum(1) * (f_c * d_c * g_c) / (4 * fabs(n_dot_in));
 	/* Clearcoat end */
 
-	if (dot(frame.n, dir_in) < 0 || dot(frame.n, dir_out) < 0) {
+	if (dot(frame.n, dir_in) < 0 ||  dot(frame.n, dir_out) < 0) {
 		diffuseWeight = 0;
 		sheenWeight = 0;
 		metalWeight = 0;
@@ -147,15 +147,15 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 }
 
 Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
-    bool reflect = dot(vertex.geometry_normal, dir_in) *
-                   dot(vertex.geometry_normal, dir_out) > 0;
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
-        frame = -frame;
-    }
-    // Homework 1: implement this!
-	Real eta = dot(frame.n, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
+	bool reflect = dot(vertex.geometry_normal, dir_in) *
+				   dot(vertex.geometry_normal, dir_out) > 0;
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
+		frame = -frame;
+	}
+	// Homework 1: implement this!
+	Real eta = dot(vertex.geometry_normal, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
 
 	Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real specular_transmission = eval(bsdf.specular_transmission, vertex.uv, vertex.uv_screen_size, texture_pool);
@@ -179,7 +179,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 
 //	diffuseWeight = 0;
 //	metalWeight = 0;
-//	glassWeight = 1;
+//	glassWeight = 0;
 // 	clearcoatWeight = 0;
 
 
@@ -261,21 +261,21 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 //	return pdf_glass;
 	if (reflect) {
 		return pdf_diffuse * diffuseWeight + pdf_metal * metalWeight + pdf_glass * glassWeight +
-		pdf_clearcoat * clearcoatWeight;
+			   pdf_clearcoat * clearcoatWeight;
 	} else {
 		return  pdf_glass * glassWeight;
 	}
 }
 
 std::optional<BSDFSampleRecord>
-        sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
-        frame = -frame;
-    }
-    // Homework 1: implement this!
-	Real eta = dot(frame.n, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
+sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) * dot(vertex.geometry_normal, dir_in) < 0) {
+		frame = -frame;
+	}
+	// Homework 1: implement this!
+	Real eta = dot(vertex.geometry_normal, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
 
 	Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real specular_transmission = eval(bsdf.specular_transmission, vertex.uv, vertex.uv_screen_size, texture_pool);
@@ -298,7 +298,7 @@ std::optional<BSDFSampleRecord>
 
 //	diffuseWeight = 0;
 //	metalWeight = 0;
-//	glassWeight = 1;
+//	glassWeight = 0;
 // 	clearcoatWeight = 0;
 
 	Real n_dot_in = dot(frame.n, dir_in);
@@ -324,20 +324,19 @@ std::optional<BSDFSampleRecord>
 	Real cdfGlass = cdfMetal + glassWeight;
 //	Real cdfClearcoat = cdfGlass + clearcoatWeight; // this should be 1
 
+//	return BSDFSampleRecord{
+//		to_world(frame, sample_cos_hemisphere(rnd_param_uv)),
+//		Real(0), Real(1) };
 
 	if (dot(frame.n, dir_in) >= 0) {
 		// choose between diffuse, metallic, glass, and clearcoat
 		if (rnd_param_w <= cdfDiffuse) {
-			if (debug(x, y))
-				printf("sampling diffuse!!!\n");
 			return BSDFSampleRecord{
 				to_world(frame, sample_cos_hemisphere(rnd_param_uv)),
 				Real(0), roughness };
 		}
 		else if (rnd_param_w <= cdfMetal) {
 			// Transform the micro normal to world space
-			if (debug(x, y))
-				printf("sampling metal at (%d, %d)!!!\n", x, y);
 			Vector3 half_vector = to_world(frame, local_micro_normal);
 			// Reflect over the world space normal
 			Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, half_vector) * half_vector);
@@ -356,18 +355,12 @@ std::optional<BSDFSampleRecord>
 //			printf("Above surface Fresnel is %f \n", F);
 			const Real &scaled_w = (rnd_param_w - cdfMetal) / (cdfGlass - cdfMetal);
 			if (scaled_w <= F) {
-				nreflect += 1;
-				if (debug(x, y))
-					printf("sampling glass reflection at (%d, %d)!!!\n", x, y);
 				// Reflection
 				Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, half_vector) * half_vector);
 				// set eta to 0 since we are not transmitting
 				return BSDFSampleRecord{reflected, Real(0), roughness};
 			} else {
 				// Refraction
-				nrefract += 1;
-				if (debug(x, y))
-					printf("sampling glass refraction at (%d, %d)!!!\n", x, y);
 				Real h_dot_out_sq = 1 - (1 - h_dot_in * h_dot_in) / (eta * eta);
 				if (h_dot_out_sq <= 0) {
 					// Total internal reflection
@@ -384,8 +377,6 @@ std::optional<BSDFSampleRecord>
 			}
 		}
 		else {
-			if (debug(x, y))
-				printf("sampling clearcoat!!!\n");
 			Real alpha_g = (1 - clearcoat_gloss) * 0.1 + clearcoat_gloss * 0.001;
 			Real alpha_g_2 = alpha_g * alpha_g;
 			Real u0 = rnd_param_uv.x;
@@ -419,9 +410,6 @@ std::optional<BSDFSampleRecord>
 
 //		printf("Below surface Fresnel is %f \n", F);
 		if (rnd_param_w <= F) {
-			nreflect += 1;
-			if (debug(x, y))
-				printf("sampling glass reflection at (%d, %d)!!!\n", x, y);
 			// Reflection
 			Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, half_vector) * half_vector);
 			// set eta to 0 since we are not transmitting
@@ -429,9 +417,6 @@ std::optional<BSDFSampleRecord>
 		}
 
 		else {
-			nrefract += 1;
-			if (debug(x, y))
-				printf("sampling glass refraction!!!\n");
 			// Refraction
 			Real h_dot_out_sq = 1 - (1 - h_dot_in * h_dot_in) / (eta * eta);
 			if (h_dot_out_sq <= 0) {
@@ -451,5 +436,5 @@ std::optional<BSDFSampleRecord>
 }
 
 TextureSpectrum get_texture_op::operator()(const DisneyBSDF &bsdf) const {
-    return bsdf.base_color;
+	return bsdf.base_color;
 }

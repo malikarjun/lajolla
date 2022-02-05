@@ -1,18 +1,50 @@
 #include "../microfacet.h"
 
+inline Vector3 sample_visible_normals_anisotropic(const Vector3 &local_dir_in, const Real alpha_x, const Real alpha_y,
+												  const Vector2 &rnd_param) {
+	// The incoming direction is in the "ellipsodial configuration" in Heitz's paper
+	if (local_dir_in.z < 0) {
+		// Ensure the input is on top of the surface.
+		return -sample_visible_normals_anisotropic(-local_dir_in, alpha_x, alpha_y, rnd_param);
+	}
+
+	// Transform the incoming direction to the "hemisphere configuration".
+	Vector3 hemi_dir_in = normalize(
+		Vector3{alpha_x * local_dir_in.x, alpha_y * local_dir_in.y, local_dir_in.z});
+
+	// Parameterization of the projected area of a hemisphere.
+	// First, sample a disk.
+	Real r = sqrt(rnd_param.x);
+	Real phi = 2 * c_PI * rnd_param.y;
+	Real t1 = r * cos(phi);
+	Real t2 = r * sin(phi);
+	// Vertically scale the position of a sample to account for the projection.
+	Real s = (1 + hemi_dir_in.z) / 2;
+	t2 = (1 - s) * sqrt(1 - t1 * t1) + s * t2;
+	// Point in the disk space
+	Vector3 disk_N{t1, t2, sqrt(max(Real(0), 1 - t1*t1 - t2*t2))};
+
+	// Reprojection onto hemisphere -- we get our sampled normal in hemisphere space.
+	Frame hemi_frame(hemi_dir_in);
+	Vector3 hemi_N = to_world(hemi_frame, disk_N);
+
+	// Transforming the normal back to the ellipsoid configuration
+	return normalize(Vector3{alpha_x * hemi_N.x, alpha_y * hemi_N.y, max(Real(0), hemi_N.z)});
+}
+
 
 Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
-    if (dot(vertex.geometry_normal, dir_in) < 0 ||
-            dot(vertex.geometry_normal, dir_out) < 0) {
-        // No light below the surface
-        return make_zero_spectrum();
-    }
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) < 0) {
-        frame = -frame;
-    }
-    // Homework 1: implement this!
+	if (dot(vertex.geometry_normal, dir_in) < 0 ||
+		dot(vertex.geometry_normal, dir_out) < 0) {
+		// No light below the surface
+		return make_zero_spectrum();
+	}
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) < 0) {
+		frame = -frame;
+	}
+	// Homework 1: implement this!
 	Vector3 half_vector = normalize(dir_in + dir_out);
 	// Flip half-vector if it's below surface
 	if (dot(half_vector, frame.n) < 0) {
@@ -42,26 +74,24 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
 	Real d_m = 1/(c_PI * alpha_x * alpha_y * h_l_term_denom);
 
 	Real G = smith_masking_gtr2_anisotropic(to_local(frame, dir_in), alpha_x, alpha_y) *
-		smith_masking_gtr2_anisotropic(to_local(frame, dir_out), alpha_x, alpha_y);
+			 smith_masking_gtr2_anisotropic(to_local(frame, dir_out), alpha_x, alpha_y);
 
 	Spectrum val = f_m * d_m * G / (4 * fabs(n_dot_in));
-	if (debug(x, y)) {
-		print(val, "f_val");
-	}
+
 	return val;
 }
 
 Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
-    if (dot(vertex.geometry_normal, dir_in) < 0 ||
-            dot(vertex.geometry_normal, dir_out) < 0) {
-        // No light below the surface
-        return 0;
-    }
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) < 0) {
-        frame = -frame;
-    }
+	if (dot(vertex.geometry_normal, dir_in) < 0 ||
+		dot(vertex.geometry_normal, dir_out) < 0) {
+		// No light below the surface
+		return 0;
+	}
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) < 0) {
+		frame = -frame;
+	}
 
 
 	Vector3 half_vector = normalize(dir_in + dir_out);
@@ -99,30 +129,21 @@ Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
 //	Real D = GTR2(n_dot_h, roughness);
 
 	// (4 * cos_theta_v) is the Jacobian of the reflection
-    Real val =  (G * D) / (4 * fabs(n_dot_in));
-
-	if (false && debug(x, y)) {
-		printf("Metal debugging!!\n");
-		print(val);
-		print(G, "G value");
-		print(D, "D value");
-		print(fabs(n_dot_in), "dot product ");
-	}
-
+	Real val =  (G * D) / (4 * fabs(n_dot_in));
 	return val;
 }
 
 std::optional<BSDFSampleRecord>
-        sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
-    if (dot(vertex.geometry_normal, dir_in) < 0) {
-        // No light below the surface
-        return {};
-    }
-    // Flip the shading frame if it is inconsistent with the geometry normal
-    Frame frame = vertex.shading_frame;
-    if (dot(frame.n, dir_in) < 0) {
-        frame = -frame;
-    }
+sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
+	if (dot(vertex.geometry_normal, dir_in) < 0) {
+		// No light below the surface
+		return {};
+	}
+	// Flip the shading frame if it is inconsistent with the geometry normal
+	Frame frame = vertex.shading_frame;
+	if (dot(frame.n, dir_in) < 0) {
+		frame = -frame;
+	}
 
 	// Sample from the specular lobe.
 	// Convert the incoming direction to local coordinates
@@ -151,5 +172,5 @@ std::optional<BSDFSampleRecord>
 }
 
 TextureSpectrum get_texture_op::operator()(const DisneyMetal &bsdf) const {
-    return bsdf.base_color;
+	return bsdf.base_color;
 }
