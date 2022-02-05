@@ -35,6 +35,7 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
 	Real alpha_x = max(alpha_min, sqr(roughness)/ aspect);
 	Real alpha_y = max(alpha_min, sqr(roughness) * aspect);
 
+	// TODO : should h_dot_out be use abs
 	Spectrum f_m = schlick_fresnel(base_color, h_dot_out);
 
 	Real h_l_term_denom = sqr(sqr(h_l.x/ alpha_x) + sqr(h_l.y/ alpha_y) + sqr(h_l.z));
@@ -43,7 +44,11 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
 	Real G = smith_masking_gtr2_anisotropic(to_local(frame, dir_in), alpha_x, alpha_y) *
 		smith_masking_gtr2_anisotropic(to_local(frame, dir_out), alpha_x, alpha_y);
 
-	return f_m * d_m * G / (4 * n_dot_in);
+	Spectrum val = f_m * d_m * G / (4 * fabs(n_dot_in));
+	if (debug(x, y)) {
+		print(val, "f_val");
+	}
+	return val;
 }
 
 Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
@@ -70,7 +75,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
 	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
 
 	// Clamp roughness to avoid numerical issues.
-	roughness = std::clamp(roughness, Real(0.01), Real(1));
+//	roughness = std::clamp(roughness, Real(0.01), Real(1));
 
 	Real n_dot_in = dot(frame.n, dir_in);
 	Real n_dot_out = dot(frame.n, dir_out);
@@ -94,7 +99,17 @@ Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
 //	Real D = GTR2(n_dot_h, roughness);
 
 	// (4 * cos_theta_v) is the Jacobian of the reflection
-    return  (G * D) / (4 * n_dot_in);
+    Real val =  (G * D) / (4 * fabs(n_dot_in));
+
+	if (false && debug(x, y)) {
+		printf("Metal debugging!!\n");
+		print(val);
+		print(G, "G value");
+		print(D, "D value");
+		print(fabs(n_dot_in), "dot product ");
+	}
+
+	return val;
 }
 
 std::optional<BSDFSampleRecord>
@@ -114,11 +129,16 @@ std::optional<BSDFSampleRecord>
 	Vector3 local_dir_in = to_local(frame, dir_in);
 	Real roughness = eval(
 		bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
+	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
+
 	// Clamp roughness to avoid numerical issues.
-	roughness = std::clamp(roughness, Real(0.01), Real(1));
-	Real alpha = roughness * roughness;
+//	roughness = std::clamp(roughness, Real(0.01), Real(1));
+	Real aspect = sqrt(1 - 0.9 * anisotropic);
+	Real alpha_min = 0.0001;
+	Real alpha_x = max(alpha_min, sqr(roughness)/ aspect);
+	Real alpha_y = max(alpha_min, sqr(roughness) * aspect);
 	Vector3 local_micro_normal =
-		sample_visible_normals(local_dir_in, alpha, rnd_param_uv);
+		sample_visible_normals_anisotropic(local_dir_in, alpha_x, alpha_y, rnd_param_uv);
 
 	// Transform the micro normal to world space
 	Vector3 half_vector = to_world(frame, local_micro_normal);

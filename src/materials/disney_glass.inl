@@ -34,7 +34,7 @@ Spectrum eval_op::operator()(const DisneyGlass &bsdf) const {
 	Vector3 h_l = to_local(frame, half_vector);
 
 	// Clamp roughness to avoid numerical issues.
-	roughness = std::clamp(roughness, Real(0.01), Real(1));
+//	roughness = std::clamp(roughness, Real(0.01), Real(1));
 
 	Real h_dot_in = dot(half_vector, dir_in);
 	Real h_dot_out = dot(half_vector, dir_out);
@@ -90,7 +90,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyGlass &bsdf) const {
 	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real roughness = eval(bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
 	// Clamp roughness to avoid numerical issues.
-	roughness = std::clamp(roughness, Real(0.01), Real(1));
+//	roughness = std::clamp(roughness, Real(0.01), Real(1));
 
 	// We sample the visible normals, also we use F to determine
 	// whether to sample reflection or refraction
@@ -132,10 +132,15 @@ sample_bsdf_op::operator()(const DisneyGlass &bsdf) const {
 	// Clamp roughness to avoid numerical issues.
 	roughness = std::clamp(roughness, Real(0.01), Real(1));
 	// Sample a micro normal and transform it to world space -- this is our half-vector.
-	Real alpha = roughness * roughness;
+	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
+
 	Vector3 local_dir_in = to_local(frame, dir_in);
+	Real aspect = sqrt(1 - 0.9 * anisotropic);
+	Real alpha_min = 0.0001;
+	Real alpha_x = max(alpha_min, sqr(roughness)/ aspect);
+	Real alpha_y = max(alpha_min, sqr(roughness) * aspect);
 	Vector3 local_micro_normal =
-		sample_visible_normals(local_dir_in, alpha, rnd_param_uv);
+		sample_visible_normals_anisotropic(local_dir_in, alpha_x, alpha_y, rnd_param_uv);
 
 	Vector3 half_vector = to_world(frame, local_micro_normal);
 	// Flip half-vector if it's below surface
@@ -149,11 +154,16 @@ sample_bsdf_op::operator()(const DisneyGlass &bsdf) const {
 	Real F = fresnel_dielectric(h_dot_in, eta);
 
 	if (rnd_param_w <= F) {
+		nreflect += 1;
+//		print(nreflect, "Reflection increment");
 		// Reflection
 		Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, half_vector) * half_vector);
 		// set eta to 0 since we are not transmitting
 		return BSDFSampleRecord{reflected, Real(0) /* eta */, roughness};
 	} else {
+		nrefract += 1;
+//		print(nrefract, "Refraction increment");
+
 		// Refraction
 		// https://en.wikipedia.org/wiki/Snell%27s_law#Vector_form
 		// (note that our eta is eta2 / eta1, and l = -dir_in)

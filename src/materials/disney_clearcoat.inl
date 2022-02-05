@@ -1,9 +1,5 @@
 #include "../microfacet.h"
 
-Real r_0(Real eta) {
-	return sqr(eta - 1)/ sqr(eta + 1);
-}
-
 Real mask_shadow_c(Vector3 w, Frame frame, Real alpha = 0.25) {
 	Vector3  w_l = to_local(frame, w);
 	Real lambda_w = (sqrt(1 + (sqr(w_l.x * alpha) + sqr(w_l.y * alpha))/sqr(w_l.z) ) - 1)/2;
@@ -45,11 +41,12 @@ Spectrum eval_op::operator()(const DisneyClearcoat &bsdf) const {
 	Real alpha_g = (1 - cleartcoat_gloss) * 0.1 + cleartcoat_gloss * 0.001;
 	Real alpha_g_2 = sqr(alpha_g);
 
+	// TODO: should h_dot_out use abs
 	Real f_c = schlick_fresnel(r_0(eta), h_dot_out);
 	Real d_c = (alpha_g_2 - 1)/ (c_PI * log(alpha_g_2) * (1 + (alpha_g_2 - 1)* sqr(h_l.z)));
 	Real g_c = mask_shadow_c(dir_in, frame) * mask_shadow_c(dir_out, frame);
 
-	Real f_clearcoat = (f_c * d_c * g_c) / (4 * n_dot_in);
+	Real f_clearcoat = (f_c * d_c * g_c) / (4 * fabs(n_dot_in));
 
     return make_const_spectrum(1) * f_clearcoat;
 }
@@ -89,7 +86,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyClearcoat &bsdf) const {
 	Real alpha_g_2 = sqr(alpha_g);
 
 	Real d_c = (alpha_g_2 - 1)/ (c_PI * log(alpha_g_2) * (1 + (alpha_g_2 - 1)* sqr(h_l.z)));
-    return d_c * n_dot_h / (4 * h_dot_out);
+    return d_c * n_dot_h / (4 * fabs(h_dot_out));
 }
 
 std::optional<BSDFSampleRecord>
@@ -113,7 +110,7 @@ std::optional<BSDFSampleRecord>
 
 	Real h_elevation = acos(sqrt((1 - pow(alpha_g_2, u0))/(1 - alpha_g_2)));
 	Real h_azimuth = 2 * c_PI * u1;
-	Vector3 h_l{sin(h_elevation) * cos(h_azimuth), sin(h_elevation) * sin(h_azimuth), cos(h_elevation)};
+	Vector3 h_l{fabs(sin(h_elevation)) * cos(h_azimuth), fabs(sin(h_elevation)) * sin(h_azimuth), cos(h_elevation)};
 
 	// Transform the micro normal to world space
 	Vector3 half_vector = to_world(frame, h_l);
