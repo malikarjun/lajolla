@@ -195,7 +195,7 @@ $\alpha_x, \alpha_y$ are parameters for modeling the smoothness of the material.
 \alpha_y &= max(\alpha_{\text{min}}, \text{roughness}^2 \cdot \text{aspect})
 \end{aligned},
 \end{equation}
-where $\text{anisotropic}$ and $\text{roughness}$ are the parameters.
+where $\text{anisotropic}$ and $\text{roughness}$ are the parameters, and $\alpha_{\text{min}} = 0.0001$.
 
 Given a normal distribution function and a microfacet configuration, it is possible to derive the average occlusion factor $G_m$ given a viewing angle~\cite{Heitz:2014:UMF}. Burley uses the Smith model, which enables a closed-form solution under the assumption that all the microfacets are independently oriented:
 \begin{equation}
@@ -416,7 +416,7 @@ Finally, we combine the five components we have and weigh them to get our final 
 \begin{equation}
 \begin{aligned}
 f_{\text{disney}} =& (1 - \text{specularTransmission}) \cdot (1 - \text{metallic}) \cdot f_{\text{diffuse}} + \\
-                   & (1 - \text{metallic}) \cdot f_{\text{sheen}} + \\
+                   & (1 - \text{metallic}) \cdot \text{sheen} \cdot f_{\text{sheen}} + \\
                    & (1 - \text{specularTransmission} \cdot (1 - \text{metallic})) \cdot \hat{f}_{\text{metal}} + \\
                    & 0.25 \cdot \text{clearcoat} \cdot f_{\text{clearcoat}} + \\
                    & (1 - \text{metallic}) \cdot \text{specularTransmission} \cdot f_{\text{glass}}
@@ -428,7 +428,7 @@ We need to modify the metal BRDF $\hat{f}_{\text{metal}}$ a bit: recall that our
 a dielectric specular reflection. We include that in our metal BRDF. To do this, we modify the Fresnel term $F_m$ to include an achromatic specular component, with a control parameter $\text{specularTint}$ to potentially make it closer to the base color:
 \begin{equation}
 \begin{aligned}
-	\hat{F}_m &= C_0 + (1 - C_0) (1 - \left(h \cdot n\right)^5) \\
+	\hat{F}_m &= C_0 + (1 - C_0) \left(1 - \left(h \cdot \omega_{\text{out}}\right)\right)^5 \\
 	C_0 &= \text{specular} \cdot R_0(\eta) (1 - \text{metallic}) K_s + \text{metallic} \cdot \text{baseColor} \\
 	K_s &= (1 - \text{specularTint}) + \text{specularTint} \cdot C_{\text{tint}}
 \end{aligned}

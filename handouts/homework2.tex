@@ -2,7 +2,7 @@
 
 \begin{document}
 
-\header{2}{Volumetric Path Tracing (tentative draft)}
+\header{2}{Volumetric Path Tracing}
 
 \begin{figure}[h]
     \includegraphics[width=\linewidth]{imgs/colored_smoke.png}
@@ -14,6 +14,8 @@ In this homework, we will build a volumetric path tracer that can handle scatter
 
 \href{https://cs.dartmouth.edu/~wjarosz/publications/novak18monte-sig.html}{This SIGGRAPH course note} is a good reference if you fail to understand the handout. Steve Marschner's course note in the footnote is also very useful. Most of the math in the last part is from Miller et al.~\cite{Miller:2019:NPI} and Georgiev et al.~\cite{Georgiev:2019:IFV}'s articles.
 
+\paragraph{Submission and grading.} Please upload a zip file to Canvas including your code, and a text file (readme.txt) answering the questions below. For the questions, as long as you say something plausible, you will get full scores.
+
 Participating media are volumes with many infinitesimal particles absorbing and scattering lights. Given a ray inside the volume parametrized by distance $\mathbf{p}(t)$, the radiance along the ray is modeled by the \emph{radiative transfer equation}:
 \begin{equation}
 \frac{\mathrm{d}}{\mathrm{d}t} L(\mathbf{p}(t), \omega) = -(\sigma_a(\mathbf{p}(t)) + \sigma_s(\mathbf{p}(t))) L(\mathbf{p}(t), \omega) + \sigma_a L_e(\mathbf{p}(t), \omega) + \sigma_s(\mathbf{p}(t)) \int_{S^2} \rho(\mathbf{p}(t), \omega, \omega') L(\mathbf{p}(t), \omega') \mathrm{d}\omega',
@@ -23,7 +25,7 @@ where $L$ is the radiance, $\sigma_a$ is the \emph{absorption coefficient}, $\si
 
 This looks a bit scary, so let's break it down. For now, we'll drop the arguments for $\sigma_a$ and $\sigma_s$, but in general, they can still be spatially varying. The radiative transfer equation is made of four components: \textbf{absorption}, \textbf{emission}, \textbf{in-scattering}, and \textbf{out-scattering}. Absorption and emission handle particles that absorb and emit lights:
 \begin{equation}
-\frac{\mathrm{d}}{\mathrm{d}t} L_a(\mathbf{p}(t), \omega) = -\sigma_a L_a(\mathbf{p}(t), \omega) + \sigma_a L_e(\mathbf{p}(t), \omega).
+\frac{\mathrm{d}}{\mathrm{d}t} L_a(\mathbf{p}(t), \omega) = -\sigma_a L_a(\mathbf{p}(t), \omega) + L_e(\mathbf{p}(t), \omega).
 \end{equation}
 Notice how this is a linear ordinary differential equation $x' = ax + b$, where $\sigma_a$ attenuates lights and $L_e$ is the gain.
 
@@ -215,7 +217,7 @@ L_2(\mathbf{p}(0), \omega) = \int_{0}^{t_{\text{hit}}} \exp\left(-\sigma_t t \ri
 \label{eq:rte_single_scattering_integral_form}
 \end{equation}
 
-To sample this integral, we importance sample the transmittance $\exp\left(-sigma_t t\right)$. To do this we need to sample $t$ such that $p(t) \propto \exp\left(-\sigma_t t\right)$. This can be done by the standard inverse tranform sampling. We first integrate $\exp\left(-\sigma_t t \right)$:
+To sample this integral, we importance sample the transmittance $\exp\left(-\sigma_t t\right)$. To do this we need to sample $t$ such that $p(t) \propto \exp\left(-\sigma_t t\right)$. This can be done by the standard inverse tranform sampling. We first integrate $\exp\left(-\sigma_t t \right)$:
 \begin{equation}
 \int_{0}^{t} \exp\left(-\sigma_t s\right) \mathrm{d}s = -\frac{exp(-\sigma_t * t)}{\sigma_t} + \frac{1}{\sigma_t}.
 \end{equation}
@@ -239,26 +241,25 @@ Thus our rendering algorithm (that generate a sample for a pixel) looks like thi
 def L(screen_pos, rng):
   camera_ray = sample_primary(camera, screen_pos, rng)
   isect = intersect(scene, camera_ray)
-  if isect:
-    u = next(rng) # u \in [0, 1]
-    t = (1 - u) / sigma_t
-    if t < isect.t_hit:
-        trans_pdf = exp(-sigma_t * t) * sigma_t
-        transmittance = exp(-sigma_t * t)
-        # compute L_s1 using Monte Carlo sampling
-        p = camera_ray.org + t * camera_ray.dir
-        # Equation 7
-        L_s1_estimate, L_s1_pdf = L_s1(p, sample_point_on_light(rng))
-        return (transmittance / trans_pdf) * (L_s1_estimate / L_s1_pdf)
-    else:
-        # hit a surface, account for surface emission
-        trans_pdf = exp(-sigma_t * isect.t_hit)
-        transmittance = exp(-sigma_t * isect.t_hit)
-        Le = 0
-        if is_light(isect):
-          Le = isect.Le
-        return (transmittance / trans_pdf) * Le
-  return 0
+
+  u = next(rng) # u \in [0, 1]
+  t = -log(1 - u) / sigma_t
+  if t < isect.t_hit:
+    trans_pdf = exp(-sigma_t * t) * sigma_t
+    transmittance = exp(-sigma_t * t)
+    # compute L_s1 using Monte Carlo sampling
+    p = camera_ray.org + t * camera_ray.dir
+    # Equation 7
+    L_s1_estimate, L_s1_pdf = L_s1(p, sample_point_on_light(rng))
+    return (transmittance / trans_pdf) * sigma_s * (L_s1_estimate / L_s1_pdf)
+  else:
+    # hit a surface, account for surface emission
+    trans_pdf = exp(-sigma_t * isect.t_hit)
+    transmittance = exp(-sigma_t * isect.t_hit)
+    Le = 0
+    if is_light(isect):
+      Le = isect.Le
+    return (transmittance / trans_pdf) * Le
 \end{lstlisting}
 
 \begin{figure}
@@ -273,7 +274,7 @@ Test your rendering using the scene \lstinline{scenes/volpath_test/volpath_test2
 
 \paragraph{Question(s) (5\%).} Play with the parameters $\sigma_s$ and $\sigma_a$, how do they affect the final image? Why? (we assume monochromatic volumes, so don't set the parameters to be different for each channel.)
 
-\paragraph{Bonus (25\%).} Implement the \emph{equiangular sampling}~\cite{Kulla:2012:IST} sampling strategy. Potentially combine it with the transmittance sampling using multiple importance sampling. (I do not recommend you implement this until you've finished the whole homework.)
+\paragraph{Bonus (25\%).} Implement the \emph{equiangular sampling}~\cite{Kulla:2012:IST} sampling strategy. Potentially combine it with the transmittance sampling using multiple importance sampling. (I do not recommend you implement this until you've finished the whole homework.) If you implement this bonus, please mention it in the README file, and provide rendering comparisons.
 
 \section{Multiple monochromatic homogeneous volumes with absorption and multiple-scattering using only phase function sampling, no surface lighting}
 \begin{figure}
@@ -628,17 +629,17 @@ To solve this ODE, we apply a change of variable $\tilde{\tau}_{\mathbf{p}}(t') 
 \end{aligned}.
 \end{equation}
 
-Instead of solving the ODE above using exponentiation (which gives us back the exponential integral), we simply integrate both sides and get $\tilde{\tau}_{\mathbf{p}}(t') = 1 + \int_0^{t'} \sigma_n(\mathbf{p}(t')) \tilde{\tau}_{\mathbf{p}}(t') \mathrm{d}t''$. Changing the variable back to $\tau$ from $\tilde{\tau}$ gives us:
+Instead of solving the ODE above using exponentiation (which gives us back the exponential integral), we simply integrate both sides and get $\tilde{\tau}_{\mathbf{p}}(t') = 1 + \int_0^{t'} \sigma_n(\mathbf{p}(t'')) \tilde{\tau}_{\mathbf{p}}(t'') \mathrm{d}t''$. Changing the variable back to $\tau$ from $\tilde{\tau}$ gives us:
 \begin{equation}
 \begin{aligned}
-\tau_{\mathbf{p}}(t') = \frac{\tilde{\tau}_{\mathbf{p}}(t')}{\exp\left(\sigma_m t'\right)} &= \exp\left(-\sigma_m t'\right) \left(1 + \int_{0}^{t'} \exp\left(\sigma_m t''\right) \sigma_n(\mathbf{p}(t)) \tau_{\mathbf{p}}(t'') \mathrm{d}t'' \right) \\
-&= \exp\left(-\sigma_m t'\right) + \int_{0}^{t'} \exp\left(\sigma_m (t''-t')\right) \sigma_n(\mathbf{p}(t)) \tau_{\mathbf{p}}(t'') \mathrm{d}t'',
+\tau_{\mathbf{p}}(t') = \frac{\tilde{\tau}_{\mathbf{p}}(t')}{\exp\left(\sigma_m t'\right)} &= \exp\left(-\sigma_m t'\right) \left(1 + \int_{0}^{t'} \exp\left(\sigma_m t''\right) \sigma_n(\mathbf{p}(t'')) \tau_{\mathbf{p}}(t'') \mathrm{d}t'' \right) \\
+&= \exp\left(-\sigma_m t'\right) + \int_{0}^{t'} \exp\left(\sigma_m (t''-t')\right) \sigma_n(\mathbf{p}(t'')) \tau_{\mathbf{p}}(t'') \mathrm{d}t'',
 \end{aligned}
 \label{eq:transmittance_recursive_integral}
 \end{equation}
 and now we have a recursive integral equation that we can directly estimate using Monte Carlo. (we can get an integral that does not involve homogenization nor exponentiation by just integrating both sides of $\frac{\mathrm{d}\tau_\mathbf{p}\left(t'\right)}{\mathrm{d}t'} = -\sigma_t(\mathbf{p}(t'))\tau_\mathbf{p}\left(t'\right)$, but Monte Carlo sampling of this integral turns out to be very very slow. See Georgiev et al.'s article for a deeper discussion~\cite{Georgiev:2019:IFV}.) This change of variable trick is called an \emph{exponential integrator} in ODE literature (Google it if you're interested ;).
 
-The Monte Carlo sampler we will apply for solving Equation~\ref{eq:transmittance_recursive_integral} is called the \emph{ratio tracking} method. The idea is to use a path tracing like algorithm with Russian roulette. We notice that the recursive integral is a bit like the rendering equation: we have the \emph{light source term} $\exp\left(-\sigma_m t'\right)$, and the recursive integral $\int_{0}^{t'} \exp\left(\sigma_m (t''-t')\right) \sigma_n(\mathbf{p}(t)) \tau_{\mathbf{p}}(t'') \mathrm{d}t''$. 
+The Monte Carlo sampler we will apply for solving Equation~\ref{eq:transmittance_recursive_integral} is called the \emph{ratio tracking} method. The idea is to use a path tracing like algorithm with Russian roulette. We notice that the recursive integral is a bit like the rendering equation: we have the \emph{light source term} $\exp\left(-\sigma_m t'\right)$, and the recursive integral $\int_{0}^{t'} \exp\left(\sigma_m (t''-t')\right) \sigma_n(\mathbf{p}(t'')) \tau_{\mathbf{p}}(t'') \mathrm{d}t''$. 
 Starting from $z=t'$, we sample a distance $z_d$ such that $p(z_d) \propto \exp\left(\sigma_m z_d\right)$ and update $z$. If we reach 0, then we evaluate the light source term. Otherwise, we evaluate the recursive term. One way to think about this is that we hit the fake particle if we choose to evaluate the recursive term. The probability for evaluating the light source term is $\exp\left(-\sigma_m z\right)$ (Equation~\ref{eq:hit_surface_prob}), and the probability density for evaluating the recursive term is $\exp\left(-\sigma_m z_d\right) \sigma_m$. We accumulate these probabilities by multiplying them, while also accounting for the integrand.
 
 \paragraph{Dealing with chromatic media.} Finally, we need to deal with colors. So far, we have been assuming that $\sigma_a$ and $\sigma_s$ are monochromatic, but in practice, they can be RGB colors (or even a vector representing response per wavelength). We deal with this by sampling a channel (R, G, or B) whenever we need to sample distance. Importantly, when computing probability density, we take the average probability density over all channels: this is a form of multiple importance sampling (called the one-sample multiple importance sampling~\cite{Veach:1995:OCS}).
@@ -767,7 +768,7 @@ Same when computing multiple importance sampling.
 
 \paragraph{Question (s) (5\%).} Play with the \lstinline{g} parameter of the Henyey-Greenstein phase function in \lstinline{scenes/volpath_test/hetvol.xml} (the valid range is $(-1, 1)$). How does it change the appearance? Why? 
 
-\paragraph{Bonus (10\%).} Generate some heterogeneous volumes yourself and render them! Look at \lstinline{volume.cpp} for the format of the 3D volume grid.
+\paragraph{Bonus (10\%).} Generate some heterogeneous volumes yourself and render them! Look at \lstinline{volume.cpp} for the format of the 3D volume grid. If you did this bonus, please submit the scene files and rendering and mention it in the README file.
 
 \bibliographystyle{plain}
 \bibliography{refs}
