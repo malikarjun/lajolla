@@ -7,6 +7,26 @@ Spectrum vol_path_tracing_1(const Scene &scene,
                             int x, int y, /* pixel coordinates */
                             pcg32_state &rng) {
     // Homework 2: implememt this!
+	int w = scene.camera.width, h = scene.camera.height;
+	Vector2 screen_pos((x + next_pcg32_real<Real>(rng)) / w,
+					   (y + next_pcg32_real<Real>(rng)) / h);
+	Ray ray = sample_primary(scene.camera, screen_pos);
+	auto ray_diff = RayDifferential{Real(0), Real(0)};
+
+	std::optional<PathVertex> vertex_ = intersect(scene, ray, ray_diff);
+
+	if (vertex_) {
+		PathVertex vertex = *vertex_;
+		Medium medium = scene.media[vertex.exterior_medium_id];
+		Real tfar = distance(ray.org, vertex.position);
+		Spectrum transmittance = exp(-get_sigma_a(medium, vertex.position) * tfar);
+
+		Spectrum Le = make_zero_spectrum();
+		if (is_light(scene.shapes[vertex.shape_id]))  {
+			Le =  emission(vertex, -ray.dir, scene);
+		}
+		return transmittance * Le;
+	}
     return make_zero_spectrum();
 }
 
