@@ -32,12 +32,6 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 	Real clearcoatWeight = 0.25 * clearcoat;
 	Real glassWeight = (1 - metallic) * specular_transmission;
 
-//	sheenWeight = 0;
-//	diffuseWeight = 0;
-//	metalWeight = 0;
-//	glassWeight = 1;
-// 	clearcoatWeight = 0;
-
 
 	Vector3 half_vector;
 
@@ -132,12 +126,6 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 		clearcoatWeight = 0;
 	}
 
-//	return f_diffuse;
-// 	return f_metal;
-//	return f_clearcoat; TODO: not working
-//	return f_glass;
-//	return f_sheen;
-
 	if (reflect) {
 		return f_diffuse * diffuseWeight + f_sheen * sheenWeight + f_metal * metalWeight +
 			   f_glass * glassWeight + f_clearcoat * clearcoatWeight;
@@ -175,12 +163,6 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 	Real metalWeight = 1 - specular_transmission * (1 - metallic);
 	Real clearcoatWeight = 0.25 * clearcoat;
 	Real glassWeight = (1 - metallic) * specular_transmission;
-
-
-//	diffuseWeight = 0;
-//	metalWeight = 0;
-//	glassWeight = 0;
-// 	clearcoatWeight = 0;
 
 
 	Real totalWeight = diffuseWeight + metalWeight + clearcoatWeight + glassWeight;
@@ -277,16 +259,10 @@ sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 	// Homework 1: implement this!
 	Real eta = dot(vertex.geometry_normal, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
 
-	Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real specular_transmission = eval(bsdf.specular_transmission, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real metallic = eval(bsdf.metallic, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real subsurface = eval(bsdf.subsurface, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real specular = eval(bsdf.specular, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real roughness = eval(bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real specular_tint = eval(bsdf.specular_tint, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real sheen = eval(bsdf.sheen, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real sheen_tint = eval(bsdf.sheen_tint, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real clearcoat = eval(bsdf.clearcoat, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real clearcoat_gloss = eval(bsdf.clearcoat_gloss, vertex.uv, vertex.uv_screen_size, texture_pool);
 
@@ -324,9 +300,6 @@ sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 	Real cdfGlass = cdfMetal + glassWeight;
 //	Real cdfClearcoat = cdfGlass + clearcoatWeight; // this should be 1
 
-//	return BSDFSampleRecord{
-//		to_world(frame, sample_cos_hemisphere(rnd_param_uv)),
-//		Real(0), Real(1) };
 
 	if (dot(frame.n, dir_in) >= 0) {
 		// choose between diffuse, metallic, glass, and clearcoat

@@ -1,3 +1,7 @@
+Real sqr(Real val) {
+	return val * val;
+}
+
 Real fresnel(Vector3 dir, Vector3 normal, Real f_90) {
   Real n_dot_dir = fabs(dot(dir, normal));
   return 1 + (f_90 - 1) * pow((1 - n_dot_dir), Real(5));

@@ -46,7 +46,6 @@ set(SRCS src/3rdparty/miniz.h
          src/phase_functions/henyeygreenstein.inl
          src/shapes/sphere.inl
          src/shapes/triangle_mesh.inl
-         src/util.h
          src/camera.h
          src/filter.h
          src/flexception.h
@@ -78,7 +77,6 @@ set(SRCS src/3rdparty/miniz.h
          src/texture.h
          src/transform.h
          src/vector.h
-         src/util.cpp
          src/camera.cpp
          src/filter.cpp
          src/image.cpp
