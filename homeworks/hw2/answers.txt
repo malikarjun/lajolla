@@ -1,3 +1,12 @@
 Q1. Single monochromatic absorption-only homogeneous volume
-Ans. Upon changing the absorption coefficient to 0, the emissisive sphere is very bright indicating that the medium is
+Ans. Upon changing the absorption coefficient to 0, the emissive sphere is very bright indicating that the medium is
 not attenuating light as it travels.
+
+Q2. Single monochromatic homogeneous volume with absorption and single-scattering, no surface lighting
+Ans. Upon increasing the sigma_s, the overall image gets dimmer due to increased out-scattering. Upon decreasing the
+sigma_s the image gets brighter disproportionately for the sphere compared to its surrounding. This is due to reduced
+out-scattering for the light being emitted from the sphere.
+
+Upon increasing the sigma_a, the image gets darker overall, more so around the sphere. This happens due to the increased
+absorption of radiance. Upon decreasing the sigma_a, the image gets brighter especially around the sphere due to reduced
+absorption of radiance.

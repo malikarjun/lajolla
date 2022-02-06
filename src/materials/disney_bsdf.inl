@@ -85,7 +85,7 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
 	// TODO : should h_dot_out be use abs
 	Spectrum k_s = (1 - specular_tint) + specular_tint * c_tint;
 	Spectrum c_0 = specular * r_0(eta) * (1 - metallic) * k_s + metallic * base_color;
-	Spectrum f_m = schlick_fresnel(c_0, abs(h_dot_out));
+	Spectrum f_m = schlick_fresnel(c_0, fabs(h_dot_out));
 
 	Real h_l_term_denom = sqr(sqr(h_l.x/ alpha_x) + sqr(h_l.y/ alpha_y) + sqr(h_l.z));
 	Real D = 1/(c_PI * alpha_x * alpha_y * h_l_term_denom);
