@@ -145,21 +145,14 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 	// Homework 1: implement this!
 	Real eta = dot(vertex.geometry_normal, dir_in) > 0 ? bsdf.eta : 1 / bsdf.eta;
 
-	Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real specular_transmission = eval(bsdf.specular_transmission, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real metallic = eval(bsdf.metallic, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real subsurface = eval(bsdf.subsurface, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real specular = eval(bsdf.specular, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real roughness = eval(bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real specular_tint = eval(bsdf.specular_tint, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real anisotropic = eval(bsdf.anisotropic, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real sheen = eval(bsdf.sheen, vertex.uv, vertex.uv_screen_size, texture_pool);
-	Real sheen_tint = eval(bsdf.sheen_tint, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real clearcoat = eval(bsdf.clearcoat, vertex.uv, vertex.uv_screen_size, texture_pool);
 	Real clearcoat_gloss = eval(bsdf.clearcoat_gloss, vertex.uv, vertex.uv_screen_size, texture_pool);
 
 	Real diffuseWeight = (1 - metallic) * (1 - specular_transmission);
-	Real sheenWeight = (1 - metallic) * sheen;
 	Real metalWeight = 1 - specular_transmission * (1 - metallic);
 	Real clearcoatWeight = 0.25 * clearcoat;
 	Real glassWeight = (1 - metallic) * specular_transmission;
@@ -277,7 +270,7 @@ sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
 //	glassWeight = 0;
 // 	clearcoatWeight = 0;
 
-	Real n_dot_in = dot(frame.n, dir_in);
+
 	roughness = std::clamp(roughness, Real(0.01), Real(1));
 
 	Real aspect = sqrt(1 - 0.9 * anisotropic);
