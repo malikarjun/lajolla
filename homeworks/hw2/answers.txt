@@ -10,3 +10,12 @@ out-scattering for the light being emitted from the sphere.
 Upon increasing the sigma_a, the image gets darker overall, more so around the sphere. This happens due to the increased
 absorption of radiance. Upon decreasing the sigma_a, the image gets brighter especially around the sphere due to reduced
 absorption of radiance.
+
+Q3. Multiple monochromatic homogeneous volumes with absorption
+    and multiple-scattering using only phase function sampling, no
+    surface lighting
+Ans. The image gets brighter with decreased sigma_a due to the reduced absorption of the radiance. On
+reducing the sigma_s, the medium gets darker due to the reduced in-scattering. On reducing the maxDepth, the sphere with
+medium1 gets darker and has sharp boundaries indicating that the not a lot of samples end up reaching the light source.
+With increasing maxDepth the medium1 sphere gets brighter, since it is likely that lot of the samples will end up
+hitting the light if they scatter around for a long time.
