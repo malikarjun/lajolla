@@ -206,10 +206,6 @@ Spectrum vol_path_tracing_3(const Scene &scene,
 				}*/
 		}
 
-		if (bounces == max_depth - 1 and max_depth != -1) {
-			break;
-		}
-
 		if (!scatter && t_hit != INF && vertex.material_id == -1) {
 			// index-matching interface, skip through it
 			current_medium_id = update_medium_id(ray, vertex, current_medium_id);
@@ -219,6 +215,12 @@ Spectrum vol_path_tracing_3(const Scene &scene,
 				printf("Medium updated to %d in bounce %d\n", current_medium_id, bounces);
 			}*/
 		}
+
+		if (bounces == max_depth - 1 and max_depth != -1) {
+			break;
+		}
+
+
 
 		if (scatter) {
 			Vector2 phase_rnd_param_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
