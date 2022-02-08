@@ -154,8 +154,7 @@ Spectrum vol_path_tracing_3(const Scene &scene,
 	int max_depth = scene.options.max_depth;
 
 
-	while(true)
-	{
+	while(true) {
 		bool scatter = false;
 /*		if (debug(x, y)) {
 //			std::optional<PathVertex> val  = intersect(scene, ray, ray_diff);
@@ -198,15 +197,13 @@ Spectrum vol_path_tracing_3(const Scene &scene,
 			debug(x, y);
 		}*/
 		bool hit_light = false;
-		if (!scatter) {
+		if (!scatter && t_hit != INF  && is_light(scene.shapes[vertex.shape_id])) {
 			// set emission if there is an intersection with a light source
-			if (t_hit != INF  && is_light(scene.shapes[vertex.shape_id])) {
-				hit_light = true;
-				radiance += current_path_throughput * emission(vertex, -ray.dir, scene);
+			hit_light = true;
+			radiance += current_path_throughput * emission(vertex, -ray.dir, scene);
 /*				if (debug(x, y)) {
 					printf("Updating radiance in bounce %d\n", bounces);
 				}*/
-			}
 		}
 
 		if (bounces == max_depth - 1 and max_depth != -1) {
@@ -252,11 +249,10 @@ Spectrum vol_path_tracing_3(const Scene &scene,
 			if (next_pcg32_real<Real>(rng) > rr_prob) {
 				// Terminate the path
 				break;
-			} else {
-				current_path_throughput /= rr_prob;
 			}
 		}
 		bounces += 1;
+		current_path_throughput /= rr_prob;
 	}
     return radiance;
 }
