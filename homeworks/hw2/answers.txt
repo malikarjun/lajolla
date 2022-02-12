@@ -19,3 +19,11 @@ reducing the sigma_s, the medium gets darker due to the reduced in-scattering. O
 medium1 gets darker and has sharp boundaries indicating that the not a lot of samples end up reaching the light source.
 With increasing maxDepth the medium1 sphere gets brighter, since it is likely that lot of the samples will end up
 hitting the light if they scatter around for a long time.
+
+Q4. Multiple monochromatic homogeneous volumes with absorption
+    and multiple-scattering with both phase function sampling and
+    next event estimation, no surface lighting
+Ans. The object composed of dense volume is similar to a lambertian material. This happens because the despite the
+presence of participating media, the light rays are unable to reach the light source due to very high absorption,
+especially on the side of the sphere which is not facing the light. Even when we perform NEE the radiance contribution
+at each scattering point is very low if the point is far away from the light source.
