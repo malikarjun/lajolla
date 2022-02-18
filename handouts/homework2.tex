@@ -201,7 +201,7 @@ Our next renderer adds single scattering to the volume (Figure~\ref{fig:volpath2
 
 Now we need to solve the radiative transfer equation (Equation~\ref{eq:rte}), except the spherical integral only recurse once:
 \begin{equation}
-L_{\text{scatter}1}(\mathbf{p}, \omega) = \int_{\mathcal{M}} \rho(\mathbf{p}(t), \omega, \omega') L_e(\mathbf{p}', \omega) \exp\left(-\sigma_t \left\| \mathbf{p}(t) - \mathbf{p}' \right\|\right) \frac{\left| \omega' \cdot \mathbf{n}_{\mathbf{p}'} \right|}{{\left\| \mathbf{p}(t) - \mathbf{p}' \right\|}^2} \text{visible}(\mathbf{p}(t), \mathbf{p}') \mathrm{d}\mathbf{p}',
+L_{\text{scatter}1}(\mathbf{p}, \omega) = \int_{\mathcal{M}} \rho(\mathbf{p}(t), \omega, \omega') L_e(\mathbf{p}', \omega') \exp\left(-\sigma_t \left\| \mathbf{p}(t) - \mathbf{p}' \right\|\right) \frac{\left| \omega' \cdot \mathbf{n}_{\mathbf{p}'} \right|}{{\left\| \mathbf{p}(t) - \mathbf{p}' \right\|}^2} \text{visible}(\mathbf{p}(t), \mathbf{p}') \mathrm{d}\mathbf{p}',
 \end{equation}
 instead of integrating over the sphere $S^2$, we apply a change of variable to integrate over the scene manifold $\mathcal{M}$ for all points on surfaces $\mathbf{p}'$. $\frac{\left| \omega' \cdot \mathbf{n}_{\mathbf{p}'} \right|}{{\left\| \mathbf{p}(t) - \mathbf{p}' \right\|}^2} \text{visible}(\mathbf{p}(t), \mathbf{p}')$ is the Jacobian of the transformation and $\omega' = \frac{\mathbf{p}' - \mathbf{p}(t)}{\left\| \mathbf{p}' - \mathbf{p}(t) \right\|}$. $\exp\left(-\sigma_t \left\| \mathbf{p}(t) - \mathbf{p}' \right\|\right)$ is the transmittance between $\mathbf{p}(t)$ and $\mathbf{p}'(t)$ that represents energy loss due to absorption and out-scattering (hence it uses the extinction coefficient $\sigma_t = \sigma_a + \sigma_s$ instead of $\sigma_a$ or $\sigma_s$). $s1$ stands for ``scattering once''.
 
@@ -347,6 +347,7 @@ def L(screen_pos, rng):
       if isect.material_id == -1:
         # index-matching interface, skip through it
         current_medium = update_medium(ray, isect, medium)
+        bounces += 1
         continue
 
     # sample next direct & update path throughput
@@ -409,9 +410,9 @@ Sampling only using the phase function is inefficient, especially when the light
 Mathematically, the next event estimation is a change of variable of the spherical single scattering integral:
 \begin{equation}
 \int_{S^2} \rho(\mathbf{p}, \omega, \omega') \tau(\mathbf{p}, \mathbf{p}') L_e(\mathbf{p}') \mathrm{d} \omega' =
-\int_{E} \rho(\mathbf{p}, \omega, \omega') \tau(\mathbf{p}, \mathbf{p}') L_e(\mathbf{p}') \frac{\mathbf{n}_{\mathbf{p}'}}{\left|\mathbf{p} - \mathbf{p}'\right|^2} \mathrm{d} \mathbf{p}',
+\int_{E} \rho(\mathbf{p}, \omega, \omega') \tau(\mathbf{p}, \mathbf{p}') L_e(\mathbf{p}') \frac{\left|\omega' \cdot \mathbf{n}_{\mathbf{p}'}\right|}{\left|\mathbf{p} - \mathbf{p}'\right|^2} \mathrm{d} \mathbf{p}',
 \end{equation}
-where $\mathbf{p}'$ are points on the light sources, $\tau(\mathbf{p}, \mathbf{p}')$ is the transmittance between point $\mathbf{p}$ and $\mathbf{p}'$. We also need to include the geometry term $\frac{\mathbf{n}_{\mathbf{p}'}}{\left|\mathbf{p} - \mathbf{p}'\right|^2}$ as the Jacobian of the change of variable.
+where $\mathbf{p}'$ are points on the light sources, $\tau(\mathbf{p}, \mathbf{p}')$ is the transmittance between point $\mathbf{p}$ and $\mathbf{p}'$. We also need to include the geometry term $\frac{\left|\omega' \cdot \mathbf{n}_{\mathbf{p}'}\right|}{\left|\mathbf{p} - \mathbf{p}'\right|^2}$ as the Jacobian of the change of variable.
 
 The pseudo-code for the volumetric next event estimation looks like this:
 \begin{lstlisting}[language=python]
@@ -428,42 +429,42 @@ def next_event_estimation(p, current_medium):
       next_t = distance(p, p_prime)
       if isect:
         next_t = distance(p, isect.position)
-        # Account for the transmittance to next_t
-        if shadow_medium:
-            T_light *= exp(-sigma_t * next_t)
-            p_trans_dir *= exp(-sigma_t * next_t)
+      # Account for the transmittance to next_t
+      if shadow_medium:
+        T_light *= exp(-sigma_t * next_t)
+        p_trans_dir *= exp(-sigma_t * next_t)
 
-        if not isect:
-            # Nothing is blocking, we're done
-            break
-        else:
-            # Something is blocking: is it an opaque surface?
-            if isect.material_id >= 0:
-                # we're blocked
-                return 0
-            # otherwise, it's an index-matching surface and
-            # we want to pass through -- this introduces
-            # one extra connection vertex
-            shadow_bounces += 1
-            if max_depth != -1 and bounces + shadow_bounces >= max_depth:
-                # Reach the max no. of vertices
-                return 0
+      if not isect:
+        # Nothing is blocking, we're done
+        break
+      else:
+        # Something is blocking: is it an opaque surface?
+        if isect.material_id >= 0:
+          # we're blocked
+          return 0
+        # otherwise, it's an index-matching surface and
+        # we want to pass through -- this introduces
+        # one extra connection vertex
+        shadow_bounces += 1
+        if max_depth != -1 and bounces + shadow_bounces >= max_depth:
+          # Reach the max no. of vertices
+          return 0
 
-            shadow_medium = update_medium(isect, ray, shadow_medium)
-            p = p + next_t * dir_light
+        shadow_medium = update_medium(isect, ray, shadow_medium)
+        p = p + next_t * dir_light
 
     if T_light > 0:
-        # Compute T_light * G * f * L & pdf_nee
-        # ...
-        contrib = T_light * G * f * L / pdf_nee
-        # Multiple importance sampling: it's also possible
-        # that a phase function sampling + multiple exponential sampling
-        # will reach the light source.
-        # We also need to multiply with G to convert phase function PDF to area measure.
-        pdf_phase = pdf_sample_phase(phase_function, dir_view, dir_light) * G * p_trans_dir
-        # power heuristics
-        w = (pdf_nee * pdf_nee) / (pdf_nee * pdf_nee + pdf_phase * pdf_phase)
-        return w * contrib
+      # Compute T_light * G * f * L & pdf_nee
+      # ...
+      contrib = T_light * G * f * L / pdf_nee
+      # Multiple importance sampling: it's also possible
+      # that a phase function sampling + multiple exponential sampling
+      # will reach the light source.
+      # We also need to multiply with G to convert phase function PDF to area measure.
+      pdf_phase = pdf_sample_phase(phase_function, dir_view, dir_light) * G * p_trans_dir
+      # power heuristics
+      w = (pdf_nee * pdf_nee) / (pdf_nee * pdf_nee + pdf_phase * pdf_phase)
+      return w * contrib
     return 0
 \end{lstlisting}
 
@@ -509,8 +510,8 @@ if not scatter:
     # The PDF for sampling the light source using phase function sampling + transmittance sampling
     # The directional sampling pdf was cached in dir_pdf in solid angle measure.
     # The transmittance sampling pdf was cached in multi_trans_pdf.
-    pdf_phase = dir_pdf * multi_trans_pdf * G;
-    w = (p_dir * p_dir) / (p_dir * p_dir + p_nee * p_nee)
+    dir_pdf_ = dir_pdf * multi_trans_pdf * G;
+    w = (dir_pdf_ * dir_pdf_) / (dir_pdf_ * dir_pdf_ + pdf_nee * pdf_nee)
     # current_path_throughput already accounts for transmittance.
     radiance += current_path_throughput * emission(vertex, -ray.dir, scene) * w
 \end{lstlisting}
