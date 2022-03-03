@@ -77,6 +77,8 @@ set(SRCS src/3rdparty/miniz.h
          src/texture.h
          src/transform.h
          src/vector.h
+         src/util.h
+         src/util.cpp
          src/camera.cpp
          src/filter.cpp
          src/image.cpp
