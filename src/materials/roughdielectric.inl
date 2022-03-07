@@ -48,6 +48,7 @@ Spectrum eval_op::operator()(const RoughDielectric &bsdf) const {
     Real D = GTR2(dot(frame.n, half_vector), roughness);
     Real G = smith_masking_gtr2(to_local(frame, dir_in), roughness) *
              smith_masking_gtr2(to_local(frame, dir_out), roughness);
+	// TODO: may need to revisit the cosine terms here due to TransportDirection
     if (reflect) {
         return Ks * (F * D * G) / (4 * fabs(dot(frame.n, dir_in)));
     } else {

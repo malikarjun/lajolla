@@ -7,8 +7,10 @@
 
 #include "scene.h"
 #include <queue>
+#include "kdtree.h"
 
-struct Photon {
+
+/*struct Photon {
 	Vector3 power;
 	Vector3 position;
 	Vector3 dir_in;
@@ -33,29 +35,21 @@ public:
 	bool operator() (DistPhoton dp1, DistPhoton dp2) {
 		return dp1.dist2 < dp2.dist2;
 	}
-};
+};*/
 
+using Photon = KDRecord;
 
 class PhotonMap {
 private:
 	std::vector<Photon> photons;
+	KDTree* kdtree;
 public:
-	PhotonMap() = default;
+	PhotonMap(std::vector<Photon> photons) : photons(photons) {
+		kdtree = new KDTree(photons, 0);
+	}
 
 	int get_num_photons() { return photons.size(); }
 	Photon& get_ith_photon(int i) { return photons[i]; }
-
-	void add_photon(Photon& photon) { photons.push_back(photon); }
-	void set_photons(std::vector<Photon>& photons) {
-		this->photons = photons;
-	}
-
-	void build() {
-		// TODO: @ziyang build KD tree here
-		// kdtree.setPoints(photons.data(), photons.size());
-		// kdtree.buildTree();
-	}
-
 
 	/**
 	 *
@@ -64,31 +58,23 @@ public:
 	 * @param max_dist update this variable with the maximum distance (squared value) between p and all the photons
 	 * @return
 	 */
-	std::vector<int> queryKNearestPhotons(const Vector3 &p, int k,
+	std::vector<Photon> queryKNearestPhotons(const Vector3 &p, int k,
 										  Real& max_dist2) const {
-		// TODO: @ziyang seach KD tree to return K nearest photons
-		// return kdtree.searchKNearest(p, k, max_dist);
-		std::vector<int> nn_photons;
+		std::vector<Photon> knn_photons = kdtree_knn( kdtree, p, k);
 
-		// max heap of size k
-		std::priority_queue<DistPhoton, std::vector<DistPhoton>, Compare> pq;
-
-		for (int i = 0; i < photons.size(); ++i) {
-			Photon photon = photons[i];
-			pq.push(DistPhoton{distance(photon.position, p), i});
-
-			if (pq.size() > k) {
-				pq.pop();
+		/*		Real min_dist = distance(p, _knn_photons[0].position);
+		std::vector<Photon> knn_photons;
+		for(Photon photon : _knn_photons) {
+			// TODO: remove the hardcoded threshold and use something scene dependent.
+			if (distance(p, photon.position) > 100 * min_dist) {
+//				printf("breaking early!!");
+//				break;
 			}
-		}
-		max_dist2 = pq.top().dist2 * pq.top().dist2;
+			knn_photons.push_back(photon);
+		}*/
 
-		while (!pq.empty()) {
-			nn_photons.push_back(pq.top().photon_idx);
-			pq.pop();
-		}
-
-		return nn_photons;
+		max_dist2 = distance_squared(p, knn_photons[knn_photons.size()-1].position);
+		return knn_photons;
 	}
 };
 

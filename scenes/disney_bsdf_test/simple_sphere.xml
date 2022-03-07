@@ -6,7 +6,7 @@
 	</integrator>
 
 	<shape type="sphere">
-		<point name="center" x="0" y="0" z="0"/>
+		<point name="center" x="265" y="330" z="296"/>
 		<float name="radius" value="1.0"/>
 
 		<bsdf type="diffuse" id="diffmat">

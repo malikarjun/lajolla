@@ -7,6 +7,16 @@
 #include <optional>
 #include <variant>
 
+
+inline Vector3 sample_cos_hemisphere(const Vector2 &rnd_param) {
+	Real phi = c_TWOPI * rnd_param[0];
+	Real tmp = sqrt(std::clamp(1 - rnd_param[1], Real(0), Real(1)));
+	return Vector3{
+		cos(phi) * tmp, sin(phi) * tmp,
+		sqrt(std::clamp(rnd_param[1], Real(0), Real(1)))
+	};
+}
+
 struct PathVertex;
 
 struct Lambertian {

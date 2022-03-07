@@ -1008,7 +1008,6 @@ Spectrum vol_path_tracing(const Scene &scene,
 
 		// index-matching interface, skip through it
 		if (!scatter && t_hit != INF && vertex.material_id == -1) {
-			int prev_medium_id = current_medium_id;
 			current_medium_id = update_medium_id(ray, vertex, current_medium_id);
 
 /*			if (debug(x, y)) {

@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 if(MSVC)
   add_compile_options(/Wall)
@@ -96,7 +96,11 @@ set(SRCS src/3rdparty/miniz.h
          src/shape.cpp
          src/table_dist.cpp
          src/transform.cpp
-         src/volume.cpp)
+         src/volume.cpp
+         src/photon_mapping.h
+         src/photon_map.h
+         src/kdtree.h
+        )
 
 
 

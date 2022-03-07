@@ -2,6 +2,7 @@
 
 #include "scene.h"
 #include "pcg.h"
+#include "util.h"
 
 /// Unidirectional path tracing
 Spectrum path_tracing(const Scene &scene,
@@ -320,6 +321,7 @@ Spectrum path_tracing(const Scene &scene,
         ray = bsdf_ray;
         vertex = *bsdf_vertex;
         current_path_throughput = current_path_throughput * (G * f) / (p2 * rr_prob);
+//		print(current_path_throughput, "for x, y = " + std::to_string(x) + ", " + std::to_string(y));
     }
     return radiance;
 }

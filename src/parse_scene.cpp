@@ -289,7 +289,27 @@ RenderOptions parse_integrator(pugi::xml_node node) {
                 options.max_null_collisions = std::stoi(child.attribute("value").value());
             }
         }
-    } else if (type == "direct") {
+    } else if (type == "photonmapping") {
+		options.integrator = Integrator::PhotonMapping;
+		for (auto child : node.children()) {
+			std::string name = child.attribute("name").value();
+			if (name == "maxDepth") {
+				options.max_depth = std::stoi(child.attribute("value").value());
+			} else if (name == "rrDepth") {
+				options.rr_depth = std::stoi(child.attribute("value").value());
+			} else if (name == "numCausticPhotons") {
+				options.num_caustic_photons = std::stoi(child.attribute("value").value());
+			} else if (name == "numCausticEstimation") {
+				options.num_caustic_estimation = std::stoi(child.attribute("value").value());
+			} else if (name == "numGlobalPhotons") {
+				options.num_global_photons = std::stoi(child.attribute("value").value());
+			} else if (name == "numGlobalEstimation") {
+				options.num_global_estimation = std::stoi(child.attribute("value").value());
+			} else if (name == "finalGatheringDepth") {
+				options.final_gathering_depth = std::stoi(child.attribute("value").value());
+			}
+		}
+	} else if (type == "direct") {
         options.integrator = Integrator::Path;
         options.max_depth = 2;
     } else if (type == "depth") {

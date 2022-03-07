@@ -30,8 +30,8 @@ private:
 	// maximum depth of photon tracing, eye tracing
 	int max_depth;
 
-	PhotonMap caustic_photon_map;
-	PhotonMap global_photon_map;
+	PhotonMap *caustic_photon_map;
+	PhotonMap *global_photon_map;
 
 /*	inline Vector3 sampleCosineHemisphere(const Vector2& uv, float& pdf) {
 		const float theta =
@@ -146,7 +146,7 @@ private:
 						break;
 					}
 					if (prev_specular && is_diffuse(mat)) {
-						photons.emplace_back(throughput, vertex.position, -ray.dir);
+						photons.emplace_back(vertex.position, throughput, -ray.dir);
 						break;
 					}
 					prev_specular = is_specular(mat);
@@ -193,7 +193,7 @@ private:
 		}
 
 		printf("generated %lu caustic photons\n", photons.size());
-		caustic_photon_map.set_photons(photons);
+		caustic_photon_map = new PhotonMap(photons);
 	}
 
 	void build_global_photon_map(const Scene &scene) {
@@ -212,7 +212,7 @@ private:
 					const Material &mat = scene.materials[vertex.material_id];
 					// break when hitting diffuse surface without previous specular
 					if (is_diffuse(mat)) {
-						photons.emplace_back(throughput, vertex.position, -ray.dir);
+						photons.emplace_back(vertex.position, throughput, -ray.dir);
 					}
 
 					// russian roulette
@@ -252,7 +252,7 @@ private:
 		}
 
 		printf("generated %lu global photons\n", photons.size());
-		global_photon_map.set_photons(photons);
+		global_photon_map = new PhotonMap(photons);
 	}
 
 public:
@@ -391,19 +391,18 @@ public:
 											 const PathVertex& vertex)  {
 		// get nearby photons
 		Real max_dist2;
-		const std::vector<int> photon_indices =
-			global_photon_map.queryKNearestPhotons(vertex.position,
+		const std::vector<Photon> photons =
+			global_photon_map->queryKNearestPhotons(vertex.position,
 												 num_global_estimation, max_dist2);
 
 		Vector3 Lo;
-		for (const int photon_idx : photon_indices) {
-			const Photon& photon = global_photon_map.get_ith_photon(photon_idx);
+		for (Photon photon : photons) {
 			const Material &mat = scene.materials[vertex.material_id];
 
 			const Vector3 f = eval(mat, wo, photon.dir_in, vertex, scene.texture_pool, TransportDirection::TO_LIGHT);
 			Lo += f * photon.power;
 		}
-		if (photon_indices.size() > 0) {
+		if (!photons.empty()) {
 			Lo /= (num_global_photons * c_PI * max_dist2);
 		}
 		return Lo;
@@ -412,18 +411,17 @@ public:
 	Vector3 compute_caustics_with_photon_map(const Scene& scene, const Vector3 &wo, const PathVertex &vertex) {
 		// get nearby photons
 		Real max_dist2 = 0;
-		const std::vector<int> photon_indices =
-			caustic_photon_map.queryKNearestPhotons(vertex.position,
+		const std::vector<Photon> photons =
+			caustic_photon_map->queryKNearestPhotons(vertex.position,
 												   num_caustic_estimation, max_dist2);
 
 		Vector3 Lo;
-		for (const int photon_idx : photon_indices) {
-			const Photon& photon = caustic_photon_map.get_ith_photon(photon_idx);
+		for (Photon photon : photons) {
 			const Material &mat = scene.materials[vertex.material_id];
 			const Vector3 f = eval(mat, wo, photon.dir_in, vertex, scene.texture_pool, TransportDirection::TO_LIGHT);
 			Lo += f * photon.power;
 		}
-		if (!photon_indices.empty()) {
+		if (!photons.empty()) {
 			Lo /= (num_caustic_photons * c_PI * max_dist2);
 		}
 
