@@ -62,66 +62,72 @@ private:
 		return mat.index() == 2;
 	}
 
-	PathVertex get_path_vertex(const Scene &scene, const PointAndNormal &point_on_light) {
-		// TODO:  refactor this to generate path vertex without intersection. This will fail for complex geometry
+	std::optional<PathVertex> get_path_vertex(const Scene &scene, const PointAndNormal &point_on_light) {
+		//// TODO:  refactor this to generate path vertex without intersection. This will fail for complex geometry
 		Vector3 org = make_zero_spectrum();
-		Vector3 pertub_pt = point_on_light.position +  0.5 * normalize(org - point_on_light.position);
-		Vector3 dir = normalize(pertub_pt - point_on_light.position);
-
-		Ray ray{pertub_pt, dir, Real(0), infinity<Real>()};
-
+		Vector3 pertub_pt = point_on_light.position +  2 * get_intersection_epsilon(scene)  * point_on_light.normal;
+		Vector3 dir = normalize(-point_on_light.normal);
+		Ray ray{pertub_pt, dir, get_intersection_epsilon(scene), infinity<Real>()};
 		std::optional<PathVertex> pv_opt = intersect(scene, ray);
-		assert(pv_opt);
-		return *pv_opt;
+		return pv_opt;
 	}
 
 	// finds a light direction and initializes the throughput
-	Ray sample_photon_ray(const Scene& scene,
+	std::optional<Ray> sample_photon_ray(const Scene& scene,
 						  Spectrum &throughput, pcg32_state &rng) {
 		// sample a light
-		Vector2 light_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
-		Real light_w = next_pcg32_real<Real>(rng);
-		Real shape_w = next_pcg32_real<Real>(rng);
-		int light_id = sample_light(scene, light_w);
-		const Light &light = scene.lights[light_id];
+		while (true)
+		{
+			Vector2 light_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
+			Real light_w = next_pcg32_real<Real>(rng);
+			Real shape_w = next_pcg32_real<Real>(rng);
+			int light_id = sample_light(scene, light_w);
+			const Light& light = scene.lights[light_id];
 
-		// TODO:  enable light sources other than area light
-		// fail if the light source is not DiffuseAreaLight
-		assert(light.index() == 0);
-		DiffuseAreaLight areaLight = std::get<DiffuseAreaLight>(light);
-		const Shape &shape = scene.shapes[areaLight.shape_id];
+			// TODO:  enable light sources other than area light
+			// fail if the light source is not DiffuseAreaLight
+			assert(light.index() == 0);
+			DiffuseAreaLight areaLight = std::get<DiffuseAreaLight>(light);
+			const Shape& shape = scene.shapes[areaLight.shape_id];
 
-		// sample point on light
-		Vector3 ref_point = make_zero_spectrum();
-		PointAndNormal point_on_light =
-			sample_point_on_light(light, ref_point, light_uv, shape_w, scene);
+			// sample point on light
+			Vector3 ref_point = make_zero_spectrum();
+			PointAndNormal point_on_light =
+				sample_point_on_light(light, ref_point, light_uv, shape_w, scene);
 
-		ShadingInfo shading_info = compute_shading_info(shape, get_path_vertex(scene, point_on_light));
+			std::optional<PathVertex> pvrt = get_path_vertex(scene, point_on_light);
+			if (!pvrt.has_value())
+			{
+				continue;
+			}
+			ShadingInfo shading_info = compute_shading_info(shape, *pvrt);
 
-		// sample light direction
-		Vector3 light_dir = to_world(shading_info.shading_frame, sample_cos_hemisphere(light_uv));
+			// sample light direction
+			Vector3 light_dir = to_world(shading_info.shading_frame, sample_cos_hemisphere(light_uv));
 
-		// TODO:  revisit light_dir_pdf
-		const float theta =
-			0.5f * std::acos(std::clamp(1.0f - 2.0f * (float) light_uv.x, -1.0f, 1.0f));
-		Real light_dir_pdf = c_INVPI * std::cos(theta);
+			// TODO:  revisit light_dir_pdf
+			const float theta =
+				0.5f * std::acos(std::clamp(1.0f - 2.0f * (float)light_uv.x, -1.0f, 1.0f));
+			Real light_dir_pdf = c_INVPI * std::cos(theta);
 
-		Ray light_ray{point_on_light.position, light_dir, get_intersection_epsilon(scene), infinity<Real>()};
+			Ray light_ray{ point_on_light.position, light_dir, get_intersection_epsilon(scene), infinity<Real>() };
 
-		Spectrum L = emission(light,
-							  light_dir, // pointing outwards from light
-							  0,
-							  point_on_light, // dummy parameter for envmap
-							  scene);
-		Real light_pdf = light_pmf(scene, light_id) *
-				  pdf_point_on_light(light, point_on_light, ref_point, scene) * light_dir_pdf;
+			Spectrum L = emission(light,
+				light_dir, // pointing outwards from light
+				0,
+				point_on_light, // dummy parameter for envmap
+				scene);
+			Real light_pdf = light_pmf(scene, light_id) *
+				pdf_point_on_light(light, point_on_light, ref_point, scene) * light_dir_pdf;
 
-		// TODO: revisit this
-		throughput = (L / light_pdf) *
-					 std::abs(dot(light_dir, shading_info.shading_frame.n));
-//		throughput = L;
+			// TODO: revisit this
+			throughput = (L / light_pdf) *
+				std::abs(dot(light_dir, shading_info.shading_frame.n));
+			//		throughput = L;
 
-		return light_ray;
+			return light_ray;
+		}
+		
 	}
 
 	void build_caustic_photon_map(const Scene &scene) {
@@ -130,7 +136,12 @@ private:
 		for (int i = 0; i < num_caustic_photons; ++i) {
 			pcg32_state rng = init_pcg32(i);
 			Vector3 throughput = make_const_spectrum(1);
-			Ray ray = sample_photon_ray(scene, throughput, rng);
+			std::optional<Ray> _ray = sample_photon_ray(scene, throughput, rng);
+			//if (!_ray.has_value())
+			//{
+			//	continue;
+			//}
+			Ray ray = *_ray;
 //			print(ray.org, "light org");
 //			print(ray.dir, "light dir");
 
@@ -202,8 +213,13 @@ private:
 		for (int i = 0; i < num_global_photons; ++i) {
 			pcg32_state rng = init_pcg32(i);
 			Vector3 throughput = make_const_spectrum(1);
-			Ray ray = sample_photon_ray(scene, throughput, rng);
-
+			std::optional<Ray> _ray = sample_photon_ray(scene, throughput, rng);
+			//if (!_ray.has_value())
+			//{
+			//	continue;
+			//}
+			Ray ray = *_ray;
+			//std::cout << i << std::endl;
 			for (int k = 0; k < max_depth; ++k) {
 				std::optional<PathVertex> _vertex = intersect(scene, ray);
 				if (_vertex) {
@@ -500,7 +516,16 @@ public:
 		Vector2 screen_pos((x + next_pcg32_real<Real>(rng)) / w,
 						   (y + next_pcg32_real<Real>(rng)) / h);
 		Ray ray = sample_primary(scene.camera, screen_pos);
-		return est_radiance_recursively(ray, scene, 0, rng);
+		Spectrum result = est_radiance_recursively(ray, scene, 0, rng);
+		if (result.x != result.x)
+		{
+			return Vector3(0, 0, 0);
+		}
+		else
+		{
+			return result;
+		}
+		
 
 	}
 };
