@@ -33,25 +33,6 @@ private:
 	PhotonMap *caustic_photon_map;
 	PhotonMap *global_photon_map;
 
-/*	inline Vector3 sampleCosineHemisphere(const Vector2& uv, float& pdf) {
-		const float theta =
-			0.5f * std::acos(std::clamp(1.0f - 2.0f * uv[0], -1.0f, 1.0f));
-		const float phi = PI_MUL_2 * uv[1];
-		const float cosTheta = std::cos(theta);
-		pdf = PI_INV * cosTheta;
-		return sphericalToCartesian(theta, phi);
-	}
-
-	Vector3 sampleDirection(const Light light, pcg32_state &rng,
-						  float& pdf)  {
-		Vector2 uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
-		const Vector3 dir = sampleCosineHemisphere(uv, pdf);
-
-		// transform direction from local to world
-		return localToWorld(dir, surfInfo.dpdu, surfInfo.shadingNormal,
-							surfInfo.dpdv);
-	}*/
-
 	bool is_diffuse(const Material& mat) {
 		// return true if material is Lambertian or DisneyDiffuse
 		return mat.index() == 0 || mat.index() == 3;
@@ -63,7 +44,7 @@ private:
 	}
 
 	std::optional<PathVertex> get_path_vertex(const Scene &scene, const PointAndNormal &point_on_light) {
-		//// TODO:  refactor this to generate path vertex without intersection. This will fail for complex geometry
+		//// TODO:  refactor this to generate path vertex without intersection. This might fail for complex geometry
 		Vector3 org = make_zero_spectrum();
 		Vector3 pertub_pt = point_on_light.position +  2 * get_intersection_epsilon(scene)  * point_on_light.normal;
 		Vector3 dir = normalize(-point_on_light.normal);
@@ -333,14 +314,11 @@ public:
 		}
 		PathVertex next_vertex = *next_vertex_;
 		const Material &next_mat = scene.materials[next_vertex.material_id];
-		// when hitting diffuse, compute radiance with photon map
 		if (is_diffuse(next_mat)) {
 			Li += f *
 				  compute_radiance_with_photon_map(scene, -ray_fg.dir, next_vertex) /
 				  pdf_dir;
 		}
-		// when hitting specular, recursively call this function
-		// NOTE: to include the path like LSDSDE
 		else if (is_specular(next_mat)) {
 			Li += f *
 				compute_indirect_illumination_recursive(
@@ -517,15 +495,10 @@ public:
 						   (y + next_pcg32_real<Real>(rng)) / h);
 		Ray ray = sample_primary(scene.camera, screen_pos);
 		Spectrum result = est_radiance_recursively(ray, scene, 0, rng);
-		if (result.x != result.x)
-		{
+		if (result.x != result.x) {
 			return Vector3(0, 0, 0);
-		}
-		else
-		{
+		} else {
 			return result;
 		}
-		
-
 	}
 };
