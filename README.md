@@ -17,3 +17,6 @@ cmake ..
 cd build
 ./lajolla ../scenes/\photonmap_test/pm_pool.xml
 ```
+
+Note: Since the pool scene might take long time to render, the `../scenes/photonmap_test/pm_cbox.xml`
+can be rendered to sanity test the implementation.
