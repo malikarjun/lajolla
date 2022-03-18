@@ -14,8 +14,8 @@
 		</transform>
 
 		<bsdf type="disneyglass">
-			<rgb name="baseColor" value="0.82 0.67 0.16"/>
-			<float name="roughness" value="0.1"/>
+			<rgb name="baseColor" value="1.0 1.0 1.0"/>
+			<float name="roughness" value="0.01"/>
 			<float name="anisotropic" value="0.8"/>
 			<float name="eta" value="1.5"/>
 		</bsdf>
@@ -34,8 +34,8 @@
 		</sampler>
 
 		<film type="hdrfilm" id="film">
-			<integer name="width" value="683"/>
-			<integer name="height" value="512"/>
+			<integer name="width" value="500"/>
+			<integer name="height" value="400"/>
 			<string name="pixelFormat" value="rgb"/>
 			<boolean name="banner" value="false"/>
 
@@ -89,4 +89,16 @@
 
 		<ref name="bsdf" id="__planemat"/>
 	</shape>
+	
+	<!-- <shape type="sphere"> -->
+		<!-- <point name="center" x="0" y="0" z="0"/> -->
+		<!-- <float name="radius" value="1.0"/> -->
+
+		<!-- <bsdf type="disneyglass"> -->
+			<!-- <rgb name="baseColor" value="1.0 1.0 1.0"/> -->
+			<!-- <float name="roughness" value="0.01"/> -->
+			<!-- <float name="anisotropic" value="0.8"/> -->
+			<!-- <float name="eta" value="1.5"/> -->
+		<!-- </bsdf> -->
+	<!-- </shape> -->
 </scene>

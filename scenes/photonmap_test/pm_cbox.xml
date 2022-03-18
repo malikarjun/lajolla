@@ -2,13 +2,13 @@
 
 <scene version="0.5.0">
 	<integrator type="photonmapping">
-		<integer name="numCausticPhotons" value="1000"/>
-		<integer name="numCausticEstimation" value="7"/>
-		<integer name="numGlobalPhotons" value="10000"/>
-		<integer name="numGlobalEstimation" value="10"/>
+		<integer name="numCausticPhotons" value="500000"/>
+		<integer name="numCausticEstimation" value="9"/>
+		<integer name="numGlobalPhotons" value="5000000"/>
+		<integer name="numGlobalEstimation" value="11"/>
 
-		<integer name="finalGatheringDepth" value="3"/>
-		<integer name="maxDepth" value="5"/>
+		<integer name="finalGatheringDepth" value="10"/>
+		<integer name="maxDepth" value="6"/>
 	</integrator>
 
 <!--	<integrator type="path">-->
@@ -27,7 +27,7 @@
 		<float name="fov" value="39.3077"/>
 
 		<sampler type="independent">
-			<integer name="sampleCount" value="32"/>
+			<integer name="sampleCount" value="512"/>
 		</sampler>
 
 		<film type="hdrfilm">
@@ -69,7 +69,7 @@
 		<ref id="light"/>
 
 		<emitter type="area">
-			<spectrum name="radiance" value="400:0, 500:80, 600:156, 700:184"/>
+			<spectrum name="radiance" value="400:0, 500:90, 600:156, 700:184"/>
 		</emitter>
 
 		<!-- <ref name="exterior" id="medium"/>-->
@@ -80,7 +80,6 @@
 
 		<ref id="white"/>
 
-		<!-- <ref name="exterior" id="medium"/>-->
 	</shape>
 
 	<shape type="obj">
@@ -88,7 +87,6 @@
 
 		<ref id="white"/>
 
-		<!-- <ref name="exterior" id="medium"/>-->
 	</shape>
 
 	<shape type="obj">
@@ -96,7 +94,6 @@
 
 		<ref id="white"/>
 
-		<!-- <ref name="exterior" id="medium"/>-->
 	</shape>
 
 	<shape type="obj">
@@ -104,7 +101,6 @@
 
 		<ref id="green"/>
 
-		<!-- <ref name="exterior" id="medium"/>-->
 	</shape>
 
 	<shape type="obj">
@@ -112,22 +108,41 @@
 
 		<ref id="red"/>
 
-		<!-- <ref name="exterior" id="medium"/>-->
+		
 	</shape>
-
-	<shape type="sphere">
-<!--		<point name="center" x="265" y="250" z="296"/>-->
-<!--		<float name="radius" value="250.0"/>-->
-
-		<point name="center" x="265" y="180" z="296"/>
-		<float name="radius" value="100.0"/>
-
+	
+	<shape type="obj">
+		<string name="filename" value="meshes/diamond.obj"/>
+		<transform name="toWorld">
+			<scale x="150" y="150" z="150"/>
+			<translate x="250" z="250"/>
+		</transform>
+		
 		<bsdf type="roughdielectric">
-			<rgb name="specularReflectance" value="0.5 0.5 0.5"/>
-			<rgb name="specularTransmittance" value="0.5 0.5 0.5"/>
-			<float name="roughness" value="0.2"/>
+			<rgb name="specularReflectance" value="0.1 0.1 0.1"/>
+			<rgb name="specularTransmittance" value="0.9 0.9 0.9"/>
+			<float name="roughness" value="0.05"/>
 			<float name="eta" value="1.1"/>
 		</bsdf>
+		
+
+	</shape>
+	
+	<shape type="obj">
+		<string name="filename" value="meshes/water_surface.obj"/>
+		<transform name="toWorld">
+			<scale x="450" y="100" z="450"/>
+			<translate x="250" y="100" z="250"/>
+		</transform>
+		
+		<bsdf type="roughdielectric">
+			<rgb name="specularReflectance" value="0.65 0.65 0.65"/>
+			<rgb name="specularTransmittance" value="0.9 0.9 0.95"/>
+			<float name="roughness" value="0.005"/>
+			<float name="eta" value="1.3"/>
+		</bsdf>
+		
+
 	</shape>
 
 </scene>
