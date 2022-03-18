@@ -185,7 +185,7 @@ private:
 			}
 		}
 
-		printf("generated %lu caustic photons\n", photons.size());
+		printf("generated caustic photons\n");
 		caustic_photon_map = new PhotonMap(photons);
 	}
 
@@ -250,7 +250,7 @@ private:
 			}
 		}
 
-		printf("generated %lu global photons\n", photons.size());
+		printf("generated global photons\n");
 		global_photon_map = new PhotonMap(photons);
 	}
 
