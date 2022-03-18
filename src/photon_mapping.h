@@ -30,8 +30,8 @@ private:
 	// maximum depth of photon tracing, eye tracing
 	int max_depth;
 
-	PhotonMap *caustic_photon_map;
-	PhotonMap *global_photon_map;
+	PhotonMap* caustic_photon_map;
+	PhotonMap* global_photon_map;
 
 	bool is_diffuse(const Material& mat) {
 		// return true if material is Lambertian or DisneyDiffuse
@@ -39,23 +39,23 @@ private:
 	}
 
 	bool is_specular(const Material& mat) {
-		// return true if material is RoughDielectric
-		return mat.index() == 2;
+		// return true if material is RoughDielectric or DisneyMetal
+		return mat.index() == 2 || mat.index() == 4 || mat.index() == 5;
 	}
 
-	std::optional<PathVertex> get_path_vertex(const Scene &scene, const PointAndNormal &point_on_light) {
-		//// TODO:  refactor this to generate path vertex without intersection. This might fail for complex geometry
+	std::optional<PathVertex> get_path_vertex(const Scene& scene, const PointAndNormal& point_on_light) {
+		//// TODO:  refactor this to generate path vertex without intersection. This will fail for complex geometry
 		Vector3 org = make_zero_spectrum();
-		Vector3 pertub_pt = point_on_light.position +  2 * get_intersection_epsilon(scene)  * point_on_light.normal;
+		Vector3 pertub_pt = point_on_light.position + 2 * get_intersection_epsilon(scene) * point_on_light.normal;
 		Vector3 dir = normalize(-point_on_light.normal);
-		Ray ray{pertub_pt, dir, get_intersection_epsilon(scene), infinity<Real>()};
+		Ray ray{ pertub_pt, dir, get_intersection_epsilon(scene), infinity<Real>() };
 		std::optional<PathVertex> pv_opt = intersect(scene, ray);
 		return pv_opt;
 	}
 
 	// finds a light direction and initializes the throughput
 	std::optional<Ray> sample_photon_ray(const Scene& scene,
-						  Spectrum &throughput, pcg32_state &rng) {
+		Spectrum& throughput, pcg32_state& rng) {
 		// sample a light
 		while (true)
 		{
@@ -108,10 +108,10 @@ private:
 
 			return light_ray;
 		}
-		
+
 	}
 
-	void build_caustic_photon_map(const Scene &scene) {
+	void build_caustic_photon_map(const Scene& scene) {
 		std::vector<Photon> photons;
 
 		for (int i = 0; i < num_caustic_photons; ++i) {
@@ -123,8 +123,8 @@ private:
 			//	continue;
 			//}
 			Ray ray = *_ray;
-//			print(ray.org, "light org");
-//			print(ray.dir, "light dir");
+			//			print(ray.org, "light org");
+			//			print(ray.dir, "light dir");
 
 			bool prev_specular = false;
 			for (int k = 0; k < max_depth; ++k) {
@@ -132,7 +132,7 @@ private:
 				if (_vertex) {
 					PathVertex vertex = *_vertex;
 					// evaluate bsdf at this point
-					const Material &mat = scene.materials[vertex.material_id];
+					const Material& mat = scene.materials[vertex.material_id];
 					// break when hitting diffuse surface without previous specular
 					if (!prev_specular && is_diffuse(mat)) {
 						break;
@@ -153,32 +153,33 @@ private:
 						}
 						throughput /= rr_prob;
 					}
-					Vector2 bsdf_rnd_param_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
+					Vector2 bsdf_rnd_param_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 					Real bsdf_rnd_param_w = next_pcg32_real<Real>(rng);
 
 					// TODO:  the TransportDirection is not being set as TO_VIEW
 					std::optional<BSDFSampleRecord> bsdf_sample_ = sample_bsdf(mat, -ray.dir, vertex,
-																			   scene.texture_pool, bsdf_rnd_param_uv,
-																			   bsdf_rnd_param_w, TransportDirection::TO_VIEW);
+						scene.texture_pool, bsdf_rnd_param_uv,
+						bsdf_rnd_param_w, TransportDirection::TO_VIEW);
 					if (!bsdf_sample_) {
 						// BSDF sampling failed. Abort the loop.
 						break;
 					}
-					const BSDFSampleRecord &bsdf_sample = *bsdf_sample_;
+					const BSDFSampleRecord& bsdf_sample = *bsdf_sample_;
 					Vector3 dir = bsdf_sample.dir_out;
 					Real dir_pdf = pdf_sample_bsdf(mat, -ray.dir, dir, vertex, scene.texture_pool, TransportDirection::TO_VIEW);
-/*					Real G = fabs(dot(ray.dir, vertex.geometry_normal)) /
-							 distance_squared(ray.org, vertex.position);
-					// convert pdf from solid angle  to area measure
-					// TODO:  this geometric term is causing issues?
-					// dir_pdf *= G;*/
+					/*					Real G = fabs(dot(ray.dir, vertex.geometry_normal)) /
+												 distance_squared(ray.org, vertex.position);
+										// convert pdf from solid angle  to area measure
+										// TODO:  this geometric term is causing issues?
+										// dir_pdf *= G;*/
 					Spectrum f = eval(mat, -ray.dir, dir, vertex, scene.texture_pool, TransportDirection::TO_VIEW);
 
 					throughput *= f / dir_pdf;
 
-					ray = Ray{vertex.position, dir, get_intersection_epsilon(scene), infinity<Real>()};
+					ray = Ray{ vertex.position, dir, get_intersection_epsilon(scene), infinity<Real>() };
 
-				} else {
+				}
+				else {
 					break;
 				}
 			}
@@ -188,7 +189,7 @@ private:
 		caustic_photon_map = new PhotonMap(photons);
 	}
 
-	void build_global_photon_map(const Scene &scene) {
+	void build_global_photon_map(const Scene& scene) {
 		std::vector<Photon> photons;
 
 		for (int i = 0; i < num_global_photons; ++i) {
@@ -206,7 +207,7 @@ private:
 				if (_vertex) {
 					PathVertex vertex = *_vertex;
 					// evaluate bsdf at this point
-					const Material &mat = scene.materials[vertex.material_id];
+					const Material& mat = scene.materials[vertex.material_id];
 					// break when hitting diffuse surface without previous specular
 					if (is_diffuse(mat)) {
 						photons.emplace_back(vertex.position, throughput, -ray.dir);
@@ -222,27 +223,28 @@ private:
 						}
 						throughput /= rr_prob;
 					}
-					Vector2 bsdf_rnd_param_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
+					Vector2 bsdf_rnd_param_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 					Real bsdf_rnd_param_w = next_pcg32_real<Real>(rng);
 
 					// TODO:  the TransportDirection is not being set as TO_VIEW
 					std::optional<BSDFSampleRecord> bsdf_sample_ = sample_bsdf(mat, -ray.dir, vertex,
-																			   scene.texture_pool, bsdf_rnd_param_uv,
-																			   bsdf_rnd_param_w, TransportDirection::TO_VIEW);
+						scene.texture_pool, bsdf_rnd_param_uv,
+						bsdf_rnd_param_w, TransportDirection::TO_VIEW);
 					if (!bsdf_sample_) {
 						// BSDF sampling failed. Abort the loop.
 						break;
 					}
-					const BSDFSampleRecord &bsdf_sample = *bsdf_sample_;
+					const BSDFSampleRecord& bsdf_sample = *bsdf_sample_;
 					Vector3 dir = bsdf_sample.dir_out;
 					Real dir_pdf = pdf_sample_bsdf(mat, -ray.dir, dir, vertex, scene.texture_pool, TransportDirection::TO_VIEW);
 					Spectrum f = eval(mat, -ray.dir, dir, vertex, scene.texture_pool, TransportDirection::TO_VIEW);
 
 					throughput *= f / dir_pdf;
 
-					ray = Ray{vertex.position, dir, get_intersection_epsilon(scene), infinity<Real>()};
+					ray = Ray{ vertex.position, dir, get_intersection_epsilon(scene), infinity<Real>() };
 
-				} else {
+				}
+				else {
 					break;
 				}
 			}
@@ -253,7 +255,7 @@ private:
 	}
 
 public:
-	PhotonMapping(const Scene &scene) {
+	PhotonMapping(const Scene& scene) {
 		this->num_caustic_photons = scene.options.num_caustic_photons;
 		this->num_caustic_estimation = scene.options.num_caustic_estimation;
 		this->num_global_photons = scene.options.num_global_photons;
@@ -270,7 +272,7 @@ public:
 			print(photonMap.get_ith_photon(i).position, std::to_string(i + 1) + " photon position");
 		}
 	}
-	void build_photon_map(const Scene &scene) {
+	void build_photon_map(const Scene& scene) {
 		if (final_gathering_depth > 0) {
 			build_caustic_photon_map(scene);
 		}
@@ -279,33 +281,33 @@ public:
 	}
 
 	Vector3 compute_indirect_illumination_recursive(const Scene& scene,
-													const Vector3& dir_view,
-													const PathVertex& vertex,
-													pcg32_state &rng,
-													int depth) {
+		const Vector3& dir_view,
+		const PathVertex& vertex,
+		pcg32_state& rng,
+		int depth) {
 		if (depth >= max_depth) return make_zero_spectrum();
 
 		int w = scene.camera.width, h = scene.camera.height;
-		Vector2 bsdf_rnd_param_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
+		Vector2 bsdf_rnd_param_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 		Real bsdf_rnd_param_w = next_pcg32_real<Real>(rng);
 
 		Vector3 Li = make_zero_spectrum();
 		// sample direction by BxDF
-		const Material &mat = scene.materials[vertex.material_id];
+		const Material& mat = scene.materials[vertex.material_id];
 		std::optional<BSDFSampleRecord> bsdf_sample_ =
 			sample_bsdf(mat, dir_view, vertex, scene.texture_pool, bsdf_rnd_param_uv, bsdf_rnd_param_w);
 		if (!bsdf_sample_) {
 			// BSDF sampling failed. Abort the loop.
 			return make_zero_spectrum();
 		}
-		const BSDFSampleRecord &bsdf_sample = *bsdf_sample_;
+		const BSDFSampleRecord& bsdf_sample = *bsdf_sample_;
 		Vector3 dir_bsdf = bsdf_sample.dir_out;
 
 		const Vector3 f = eval(mat, dir_view, dir_bsdf, vertex, scene.texture_pool);
 		Real pdf_dir = pdf_sample_bsdf(mat, dir_view, dir_bsdf, vertex, scene.texture_pool);
 
 		// trace final gathering ray
-		Ray ray_fg{vertex.position, dir_bsdf, get_intersection_epsilon(scene), infinity<Real>()};
+		Ray ray_fg{ vertex.position, dir_bsdf, get_intersection_epsilon(scene), infinity<Real>() };
 		RayDifferential ray_diff = init_ray_differential(w, h);
 
 		std::optional<PathVertex> next_vertex_ = intersect(scene, ray_fg, ray_diff);
@@ -313,17 +315,20 @@ public:
 			return make_zero_spectrum();
 		}
 		PathVertex next_vertex = *next_vertex_;
-		const Material &next_mat = scene.materials[next_vertex.material_id];
+		const Material& next_mat = scene.materials[next_vertex.material_id];
+		// when hitting diffuse, compute radiance with photon map
 		if (is_diffuse(next_mat)) {
 			Li += f *
-				  compute_radiance_with_photon_map(scene, -ray_fg.dir, next_vertex) /
-				  pdf_dir;
+				compute_radiance_with_photon_map(scene, -ray_fg.dir, next_vertex) /
+				pdf_dir;
 		}
+		// when hitting specular, recursively call this function
+		// NOTE: to include the path like LSDSDE
 		else if (is_specular(next_mat)) {
 			Li += f *
 				compute_indirect_illumination_recursive(
 					scene, -ray_fg.dir, next_vertex, rng, depth + 1) /
-				  pdf_dir;
+				pdf_dir;
 		}
 
 		return Li;
@@ -331,24 +336,24 @@ public:
 
 	// compute indirect illumination with final gathering
 	Vector3 compute_indirect_illumination(const Scene& scene, const Vector3& wo,
-										  const PathVertex& vertex,
-										  pcg32_state &rng, int depth) {
+		const PathVertex& vertex,
+		pcg32_state& rng, int depth) {
 		// TODO: should the depth be zero?
 		return compute_indirect_illumination_recursive(scene, wo, vertex, rng, depth);
 	}
 
 	// compute direct illumination with explicit light sampling(NEE)
 	Vector3 compute_direct_illumination(const Scene& scene, const Vector3& dir_view,
-										const PathVertex &vertex,
-										pcg32_state &rng) {
+		const PathVertex& vertex,
+		pcg32_state& rng) {
 		Vector3 Ld = make_zero_spectrum();
 
 		// sample light
-		Vector2 light_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
+		Vector2 light_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 		Real light_w = next_pcg32_real<Real>(rng);
 		Real shape_w = next_pcg32_real<Real>(rng);
 		int light_id = sample_light(scene, light_w);
-		const Light &light = scene.lights[light_id];
+		const Light& light = scene.lights[light_id];
 
 		// sample point on light
 		PointAndNormal point_on_light =
@@ -356,13 +361,13 @@ public:
 
 		Vector3 dir_light = normalize(point_on_light.position - vertex.position);
 
-		Ray shadow_ray{vertex.position, dir_light,
+		Ray shadow_ray{ vertex.position, dir_light,
 					   get_shadow_epsilon(scene),
 					   (1 - get_shadow_epsilon(scene)) *
-					   distance(point_on_light.position, vertex.position)};
+					   distance(point_on_light.position, vertex.position) };
 		if (!occluded(scene, shadow_ray)) {
 			Real pdf_pos_light = light_pmf(scene, light_id) *
-					  pdf_point_on_light(light, point_on_light, vertex.position, scene);
+				pdf_point_on_light(light, point_on_light, vertex.position, scene);
 			// convert positional pdf to directional pdf
 			const Vector3 wi = normalize(point_on_light.position - vertex.position);
 			const Real r = length(point_on_light.position - vertex.position);
@@ -371,7 +376,7 @@ public:
 
 			Spectrum Le = emission(light, -dir_light, Real(0), point_on_light, scene);
 
-			const Material &mat = scene.materials[vertex.material_id];
+			const Material& mat = scene.materials[vertex.material_id];
 			Spectrum f = eval(mat, dir_view, dir_light, vertex, scene.texture_pool);
 
 			Ld = f * Le / pdf_dir;
@@ -382,16 +387,16 @@ public:
 
 	// compute reflected radiance with global photon map
 	Vector3 compute_radiance_with_photon_map(const Scene& scene, const Vector3& wo,
-											 const PathVertex& vertex)  {
+		const PathVertex& vertex) {
 		// get nearby photons
 		Real max_dist2;
 		const std::vector<Photon> photons =
 			global_photon_map->queryKNearestPhotons(vertex.position,
-												 num_global_estimation, max_dist2);
+				num_global_estimation, max_dist2);
 
 		Vector3 Lo;
 		for (Photon photon : photons) {
-			const Material &mat = scene.materials[vertex.material_id];
+			const Material& mat = scene.materials[vertex.material_id];
 
 			const Vector3 f = eval(mat, wo, photon.dir_in, vertex, scene.texture_pool, TransportDirection::TO_LIGHT);
 			Lo += f * photon.power;
@@ -402,16 +407,16 @@ public:
 		return Lo;
 	}
 
-	Vector3 compute_caustics_with_photon_map(const Scene& scene, const Vector3 &wo, const PathVertex &vertex) {
+	Vector3 compute_caustics_with_photon_map(const Scene& scene, const Vector3& wo, const PathVertex& vertex) {
 		// get nearby photons
 		Real max_dist2 = 0;
 		const std::vector<Photon> photons =
 			caustic_photon_map->queryKNearestPhotons(vertex.position,
-												   num_caustic_estimation, max_dist2);
+				num_caustic_estimation, max_dist2);
 
 		Vector3 Lo;
 		for (Photon photon : photons) {
-			const Material &mat = scene.materials[vertex.material_id];
+			const Material& mat = scene.materials[vertex.material_id];
 			const Vector3 f = eval(mat, wo, photon.dir_in, vertex, scene.texture_pool, TransportDirection::TO_LIGHT);
 			Lo += f * photon.power;
 		}
@@ -422,7 +427,7 @@ public:
 		return Lo;
 	}
 
-	Vector3 est_radiance_recursively(const Ray& ray, const Scene& scene, int depth, pcg32_state &rng)  {
+	Vector3 est_radiance_recursively(const Ray& ray, const Scene& scene, int depth, pcg32_state& rng) {
 		if (depth >= max_depth) return make_zero_spectrum();
 
 		int w = scene.camera.width, h = scene.camera.height;
@@ -438,13 +443,14 @@ public:
 			return emission(vertex, -ray.dir, scene);
 		}
 
-		const Material &mat = scene.materials[vertex.material_id];
+		const Material& mat = scene.materials[vertex.material_id];
 
 		if (is_diffuse(mat)) {
 
 			if (depth >= final_gathering_depth) {
 				return compute_radiance_with_photon_map(scene, -ray.dir, vertex);
-			} else {
+			}
+			else {
 				// compute direct illumination by NEE
 				const Vector3 Ld =
 					compute_direct_illumination(scene, -ray.dir, vertex, rng);
@@ -459,26 +465,27 @@ public:
 				return Lc + Ld + Li;
 			}
 
-		} else if (is_specular(mat)) {
-			Vector2 bsdf_rnd_param_uv{next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng)};
+		}
+		else if (is_specular(mat)) {
+			Vector2 bsdf_rnd_param_uv{ next_pcg32_real<Real>(rng), next_pcg32_real<Real>(rng) };
 			Real bsdf_rnd_param_w = next_pcg32_real<Real>(rng);
 
 			// sample direction by BxDF
 			Vector3 dir_view = -ray.dir;
-			const Material &mat = scene.materials[vertex.material_id];
+			const Material& mat = scene.materials[vertex.material_id];
 			std::optional<BSDFSampleRecord> bsdf_sample_ =
 				sample_bsdf(mat, dir_view, vertex, scene.texture_pool, bsdf_rnd_param_uv, bsdf_rnd_param_w);
 			if (!bsdf_sample_) {
 				// BSDF sampling failed. Abort the loop.
 				return make_zero_spectrum();
 			}
-			const BSDFSampleRecord &bsdf_sample = *bsdf_sample_;
+			const BSDFSampleRecord& bsdf_sample = *bsdf_sample_;
 			Vector3 dir_bsdf = bsdf_sample.dir_out;
 
 			const Vector3 f = eval(mat, dir_view, dir_bsdf, vertex, scene.texture_pool);
 			Real pdf_dir = pdf_sample_bsdf(mat, dir_view, dir_bsdf, vertex, scene.texture_pool);
 			// recursively raytrace
-			const Ray next_ray{vertex.position, dir_bsdf, get_intersection_epsilon(scene), infinity<Real>()};
+			const Ray next_ray{ vertex.position, dir_bsdf, get_intersection_epsilon(scene), infinity<Real>() };
 			const Vector3 throughput = f / pdf_dir;
 
 			return throughput *
@@ -487,18 +494,23 @@ public:
 		return make_zero_spectrum();
 	}
 
-	Spectrum estimate_radiance(const Scene &scene,
-							int x, int y, /* pixel coordinates */
-							pcg32_state &rng) {
+	Spectrum estimate_radiance(const Scene& scene,
+		int x, int y, /* pixel coordinates */
+		pcg32_state& rng) {
 		int w = scene.camera.width, h = scene.camera.height;
 		Vector2 screen_pos((x + next_pcg32_real<Real>(rng)) / w,
-						   (y + next_pcg32_real<Real>(rng)) / h);
+			(y + next_pcg32_real<Real>(rng)) / h);
 		Ray ray = sample_primary(scene.camera, screen_pos);
 		Spectrum result = est_radiance_recursively(ray, scene, 0, rng);
-		if (result.x != result.x) {
+		if (result.x != result.x)
+		{
 			return Vector3(0, 0, 0);
-		} else {
+		}
+		else
+		{
 			return result;
 		}
+
+
 	}
 };
