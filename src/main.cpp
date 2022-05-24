@@ -35,6 +35,18 @@ int main(int argc, char *argv[]) {
         tick(timer);
         std::cout << "Parsing and constructing scene " << filename << "." << std::endl;
         Scene scene = parse_scene(filename, embree_device);
+
+        // automatically determine the integrator based on the output filename
+        if (outputfile.find("depth") != std::string::npos) {
+            std::cout << "rendering depth buffer!" << '\n';
+            scene.output_filename = outputfile;
+            scene.options.integrator = Integrator::Depth;
+        } else if (outputfile.find("normal") != std::string::npos) {
+            std::cout << "rendering normal buffer!" << '\n';
+            scene.output_filename = outputfile;
+            scene.options.integrator = Integrator::ShadingNormal;
+        }
+
         std::cout << "Done. Took " << tick(timer) << " seconds." << std::endl;
         std::cout << "Rendering..." << std::endl;
         Image3 img = render(scene);

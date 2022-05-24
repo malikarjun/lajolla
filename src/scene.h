@@ -51,6 +51,8 @@ struct Scene {
           const Camera &camera,
           const std::vector<Material> &materials,
           const std::vector<Shape> &shapes,
+          const std::vector<Matrix4x4> &model_mats,
+          const std::vector<std::string> &model_fnames,
           const std::vector<Light> &lights,
           const std::vector<Medium> &media,
           int envmap_light_id, /* -1 if the scene has no envmap */
@@ -72,6 +74,8 @@ struct Scene {
     // If we want to port this to GPUs later, we need to maintain a thrust vector or something similar.
     const std::vector<Material> materials;
     const std::vector<Shape> shapes;
+    const std::vector<Matrix4x4> model_mats;
+    const std::vector<std::string> model_fnames;
     const std::vector<Light> lights;
     const std::vector<Medium> media;
     int envmap_light_id;

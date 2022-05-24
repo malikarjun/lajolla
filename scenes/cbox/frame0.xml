@@ -7,6 +7,8 @@
 <!--		<integer name="maxDepth" value="-1"/>-->
 	</integrator>
 
+
+
 	<sensor type="perspective">
 		<string name="fovAxis" value="smaller"/>
 		<float name="nearClip" value="10"/>
@@ -22,8 +24,8 @@
 		</sampler>
 
 		<film type="hdrfilm">
-			<integer name="width" value="512"/>
-			<integer name="height" value="512"/>
+			<integer name="width" value="513"/>
+			<integer name="height" value="513"/>
 
 			<rfilter type="gaussian"/>
 		</film>
@@ -66,15 +68,40 @@
 		</emitter>
 	</shape>
 
+<!--	FIXME : @mswamy avoided using sphere for svgf experiments because of MVP matrix complication-->
 <!--	<shape type="sphere">-->
 <!--		<point name="center" x="225" y="250" z="200"/>-->
 <!--		<float name="radius" value="30.0"/>-->
-<!--		-->
+
 <!--		<ref id="light"/>-->
 
 <!--		<emitter type="area">-->
 <!--			<spectrum name="radiance" value="5"/>-->
 <!--		</emitter>-->
+<!--	</shape>-->
+
+	<shape type="obj">
+		<string name="filename" value="meshes/cbox_smallbox.obj"/>
+		<transform name="toWorld">
+			<translate x="200" y="700" z="0"/>
+			<scale x="0.25" y="0.25" z="0.25" />
+		</transform>
+
+		<emitter type="area">
+			<spectrum name="radiance" value="5"/>
+		</emitter>
+
+		<ref id="box"/>
+	</shape>
+
+<!--the following shape was used to see if we have a camera frustum in lajolla, looks like we don't, if something
+	is right in front of the camera it will still be rendered-->
+<!--	<shape type="sphere">-->
+<!--		<point name="center" x="278" y="273" z="-799.5"/>-->
+<!--		<float name="radius" value="0.1"/>-->
+
+<!--		<ref id="light"/>-->
+
 <!--	</shape>-->
 
 	<shape type="obj">

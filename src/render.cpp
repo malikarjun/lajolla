@@ -8,11 +8,24 @@
 #include "pcg.h"
 #include "progress_reporter.h"
 #include "scene.h"
+#include "transform.h"
+
 
 /// Render auxiliary buffers e.g., depth.
 Image3 aux_render(const Scene &scene) {
     int w = scene.camera.width, h = scene.camera.height;
     Image3 img(w, h);
+
+    Image4 img4(w, h);
+/*    for (int k = 0; k < 4; ++k) {
+        for (int x = 0; x < img.width; ++x) {
+            for (int y = 0; y < img.height; ++y) {
+                image4(x, y) = Vector4{1, 2, 3, 4};
+            }
+        }
+    }
+
+    save_npy(image4, "tmp.npy");*/
 
     constexpr int tile_size = 16;
     int num_tiles_x = (w + tile_size - 1) / tile_size;
@@ -28,10 +41,19 @@ Image3 aux_render(const Scene &scene) {
                 Ray ray = sample_primary(scene.camera, Vector2((x + Real(0.5)) / w, (y + Real(0.5)) / h));
                 RayDifferential ray_diff = init_ray_differential(w, h);
                 if (std::optional<PathVertex> vertex = intersect(scene, ray, ray_diff)) {
-                    Real dist = distance(vertex->position, ray.org);
+                    // Real dist = distance(vertex->position, ray.org);
                     Vector3 color{0, 0, 0};
+                    Vector4 color4 {-1, -1, -1, -1};
                     if (scene.options.integrator == Integrator::Depth) {
-                        color = Vector3{dist, dist, dist};
+                        Real z_eye_space = xform_point(scene.camera.world_to_cam, vertex->position)[2];
+                        color = Vector3{z_eye_space, z_eye_space, z_eye_space};
+
+                        color4.x = vertex->shape_id;
+                        color4.y = vertex->primitive_id;
+                        color4.z = vertex->st.x;
+                        color4.w = vertex->st.y;
+
+                        // color = Vector3{dist, dist, dist};
                     } else if (scene.options.integrator == Integrator::ShadingNormal) {
                         // color = (vertex->shading_frame.n + Vector3{1, 1, 1}) / Real(2);
                         color = vertex->shading_frame.n;
@@ -59,12 +81,37 @@ Image3 aux_render(const Scene &scene) {
                         }
                     }
                     img(x, y) = color;
+                    img4(x, y) = color4;
                 } else {
                     img(x, y) = Vector3{0, 0, 0};
                 }
             }
         }
     }, Vector2i(num_tiles_x, num_tiles_y));
+
+    if (scene.options.integrator == Integrator::Depth) {
+        // convert eye space/world space depth into clip space depth needed for A-SVGF
+        // TODO: not sure if near clip plane is 1
+        // FIXME: Ans. Checked by debugging near clip plane is 1, but it is not enforced due to lack of camera frustum.
+        Real n = 1, f = -1;
+        //
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                f = std::max(f, img(x, y)[0]);
+            }
+        }
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                img(x, y) = (img(x, y) + Real(1))/(f - n);
+            }
+        }
+
+        std::string base_path = replace(scene.output_filename, "_depth.exr", "");
+        save_mat(scene.camera.cam_to_sample * scene.camera.world_to_cam, base_path + "_viewproj.npy");
+        save_npy(img4, base_path + "_vbuffer.npy");
+        save_npy(scene.model_mats, base_path + "_model_mats.npy");
+        save_txt(scene.model_fnames, base_path + "_model_fnames.txt");
+    }
 
     return img;
 }
@@ -76,30 +123,39 @@ Image3 path_render(const Scene &scene) {
     constexpr int tile_size = 16;
     int num_tiles_x = (w + tile_size - 1) / tile_size;
     int num_tiles_y = (h + tile_size - 1) / tile_size;
+    #undef DEBUG
+    #ifdef DEBUG
 
-
-	if (1) {
 		ProgressReporter reporter(h*w);
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < w; x++) {
 				Spectrum radiance = make_zero_spectrum();
 				int spp = scene.options.samples_per_pixel;
 				pcg32_state rng = init_pcg32(x*w + y);
+                Real depth = 0;
+                Vector3 normal;
+
+//                if (debug(x, y)) {
+//                    debug(0, 0);
+//                }
+
 				for (int s = 0; s < spp; s++) {
-					Spectrum L = path_tracing(scene, x, y, rng);
+					Spectrum L = path_tracing(scene, x, y, rng, depth, normal);
 					if (isfinite(L)) {
 						// Hacky: exclude NaNs in the rendering.
 						radiance += L;
 					}
 				}
 				img(x, y) = radiance / Real(spp);
+/*                depth_buffer[x][y] = depth;
+                normal_buffer[x][y] = normal;*/
 //				reporter.update(1);
 			}
 
 		}
 
 		reporter.done();
-	} else {
+    #else
 		ProgressReporter reporter(num_tiles_x * num_tiles_y);
 		parallel_for([&](const Vector2i &tile) {
 			// Use a different rng stream for each thread.
@@ -121,7 +177,9 @@ Image3 path_render(const Scene &scene) {
 			reporter.update(1);
 		}, Vector2i(num_tiles_x, num_tiles_y));
 		reporter.done();
-	}
+    #endif
+
+
 
     return img;
 }

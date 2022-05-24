@@ -14,6 +14,7 @@
 		<float name="focusDistance" value="1000"/>
 		<transform name="toWorld">
 			<lookAt origin="278, 273, -800" target="278, 273, -799" up="0, 1, 0"/>
+<!--			<lookAt origin="278, 250, -800" target="278, 250, -799" up="0, 1, 0"/>-->
 		</transform>
 		<float name="fov" value="39.3077"/>
 
@@ -22,8 +23,8 @@
 		</sampler>
 
 		<film type="hdrfilm">
-			<integer name="width" value="512"/>
-			<integer name="height" value="512"/>
+			<integer name="width" value="513"/>
+			<integer name="height" value="513"/>
 
 			<rfilter type="gaussian"/>
 		</film>
@@ -64,6 +65,21 @@
 		<emitter type="area">
 			<spectrum name="radiance" value="10"/>
 		</emitter>
+	</shape>
+
+
+	<shape type="obj">
+		<string name="filename" value="meshes/cbox_smallbox.obj"/>
+		<transform name="toWorld">
+			<translate x="200" y="700" z="0"/>
+			<scale x="0.25" y="0.25" z="0.25" />
+		</transform>
+
+<!--		<emitter type="area">-->
+<!--			<spectrum name="radiance" value="5"/>-->
+<!--		</emitter>-->
+
+		<ref id="box"/>
 	</shape>
 
 <!--	<shape type="sphere">-->
@@ -109,6 +125,10 @@
 
 	<shape type="obj">
 		<string name="filename" value="meshes/cbox_smallbox.obj"/>
+		<!-- TODO : @mswamy used to testing world space reconstruction in python		-->
+		<transform name="toWorld">
+			<translate x="25" y="0.0" z="0"/>
+		</transform>
 		<ref id="box"/>
 	</shape>
 

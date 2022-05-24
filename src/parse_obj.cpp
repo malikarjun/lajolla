@@ -218,7 +218,9 @@ TriangleMesh parse_obj(const fs::path &filename, const Matrix4x4 &to_world) {
 	                                        mesh.uvs,
 	                                        mesh.normals,
 	                                        vertex_map);
-                mesh.indices.push_back(Vector3i{v0id, v2id, v3id});
+                // FIXME : @mswamy this is changed to follow the conventions of obj file loading set up by PyWavefront
+                //  https://github.com/pywavefront/PyWavefront
+                mesh.indices.push_back(Vector3i{v3id, v0id, v2id});
             }
             std::string i4;
             if (ss >> i4) {

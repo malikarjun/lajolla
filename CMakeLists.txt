@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-#set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#set(CMAKE_BUILD_TYPE Debug)
 
 if(MSVC)
   add_compile_options(/Wall)
@@ -105,8 +105,12 @@ set(SRCS src/3rdparty/miniz.h
 
 
 add_library(lajolla_lib STATIC ${SRCS})
+link_directories(/usr/local/lib)
+
 add_executable(lajolla src/main.cpp)
-target_link_libraries(lajolla lajolla_lib)
+
+
+target_link_libraries(lajolla lajolla_lib cnpy z)
 if(MSVC)
   add_custom_command(TARGET lajolla POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory

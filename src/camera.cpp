@@ -10,10 +10,16 @@ Camera::Camera(const Matrix4x4 &cam_to_world,
                const Filter &filter,
                int medium_id)
     : cam_to_world(cam_to_world),
+    // TODO: @mswamy world_to_cam is view matrix, view matrix takes points in world coordinates to view/eye/camera space
       world_to_cam(inverse(cam_to_world)),
       width(width), height(height),
       filter(filter), medium_id(medium_id) {
     Real aspect = (Real)width / (Real)height;
+    // TODO : @mswamy projection matrix, take camera coordinates to clip space
+    // near plane is at a distance of 1, and far plane would be infinity. Clip space domain is [0, 1]^2
+    // there is no concept of camera frustum, an object which is right in front of a camera origin will still
+    // get rendered.
+    // for example, a camera coordinate point (0, 0, 1) will be transformed to (0.5, 0.5)
     cam_to_sample = scale(Vector3(-Real(0.5), -Real(0.5) * aspect, Real(1.0))) *
                     translate(Vector3(-Real(1.0), -Real(1.0) / aspect, Real(0.0))) *
                     perspective(fov);

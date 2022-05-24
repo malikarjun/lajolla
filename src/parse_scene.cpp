@@ -4,6 +4,7 @@
 #include "load_serialized.h"
 #include "parse_obj.h"
 #include "transform.h"
+#include "matrix.h"
 #include <cctype>
 #include <map>
 #include <regex>
@@ -828,7 +829,7 @@ std::tuple<std::string /* ID */, Material> parse_bsdf(
     return std::make_tuple("", Material{});
 }
 
-Shape parse_shape(pugi::xml_node node,
+std::pair<std::pair<Shape, Matrix4x4>, std::string> parse_shape(pugi::xml_node node,
                   std::vector<Material> &materials,
                   std::map<std::string /* name id */, int /* index id */> &material_map,
                   const std::map<std::string /* name id */, ParsedTexture> &texture_map,
@@ -896,6 +897,8 @@ Shape parse_shape(pugi::xml_node node,
     }
 
     Shape shape;
+    Matrix4x4 model_mat = Matrix4x4::identity();
+    std::string shape_filename;
     std::string type = node.attribute("type").value();
     if (type == "obj") {
         std::string filename;
@@ -910,7 +913,10 @@ Shape parse_shape(pugi::xml_node node,
                 }
             }
         }
+        // TODO: @mswamy store to_world in shape object. will serve as world matrix for each instance.
         shape = parse_obj(filename, to_world);
+        model_mat = to_world;
+        shape_filename = filename;
     } else if (type == "serialized") {
         std::string filename;
         int shape_index = 0;
@@ -928,6 +934,8 @@ Shape parse_shape(pugi::xml_node node,
             }
         }
         shape = load_serialized(filename, shape_index, to_world);
+        model_mat = to_world;
+        shape_filename = filename;
     } else if (type == "sphere") {
         Vector3 center{0, 0, 0};
         Real radius = 1;
@@ -943,6 +951,7 @@ Shape parse_shape(pugi::xml_node node,
             }
         }
         shape = Sphere{{}, center, radius};
+        shape_filename = "sphere";
     } else {
         Error(std::string("Unknown shape:") + type);
     }
@@ -986,7 +995,7 @@ Shape parse_shape(pugi::xml_node node,
         }
     }
 
-    return shape;
+    return std::make_pair(std::make_pair(shape, model_mat), shape_filename);
 }
 
 /// We don't load the images to memory at this stage. Only record their names.
@@ -1065,6 +1074,8 @@ Scene parse_scene(pugi::xml_node node, const RTCDevice &embree_device) {
     std::vector<Medium> media;
     std::map<std::string /* name id */, int /* index id */> medium_map;
     std::vector<Shape> shapes;
+    std::vector<Matrix4x4> model_mats;
+    std::vector<std::string> model_fnames;
     std::vector<Light> lights;
     int envmap_light_id = -1;
     for (auto child : node.children()) {
@@ -1085,7 +1096,7 @@ Scene parse_scene(pugi::xml_node node, const RTCDevice &embree_device) {
                 materials.push_back(m);
             }
         } else if (name == "shape") {
-            Shape s = parse_shape(child,
+            std::pair<std::pair<Shape, Matrix4x4>, std::string>  pr = parse_shape(child,
                                   materials,
                                   material_map,
                                   texture_map,
@@ -1094,7 +1105,12 @@ Scene parse_scene(pugi::xml_node node, const RTCDevice &embree_device) {
                                   medium_map,
                                   lights,
                                   shapes);
-            shapes.push_back(s);
+            // TODO: @mswamy ignoring spheres right, difficult to handle
+//            if (pr.second != "sphere") {
+//            }
+            model_mats.push_back(pr.first.second);
+            model_fnames.push_back(pr.second);
+            shapes.push_back(pr.first.first);
         } else if (name == "texture") {
             std::string id = child.attribute("id").value();
             if (texture_map.find(id) != texture_map.end()) {
@@ -1143,6 +1159,8 @@ Scene parse_scene(pugi::xml_node node, const RTCDevice &embree_device) {
                  camera,
                  materials,
                  shapes,
+                 model_mats,
+                 model_fnames,
                  lights,
                  media,
                  envmap_light_id,

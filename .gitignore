@@ -50,3 +50,4 @@ build/
 .DS_Store
 .idea/
 cmake-build-debug_flag/
+cmake-build-debug*/
