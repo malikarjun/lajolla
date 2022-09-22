@@ -14,6 +14,7 @@ bool debug(int x, int y);
 
 
 void print(Vector3 vec, std::string str="");
+void print(Vector2 vec, std::string str="");
 void print(Real val);
 
 void save_mat(Matrix4x4 mat, const std::string& filename);

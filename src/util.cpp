@@ -23,6 +23,10 @@ void print(Vector3 vec, std::string str) {
 	std::cout << str << " " << vec << std::endl;
 }
 
+void print(Vector2 vec, std::string str) {
+    std::cout << std::endl << str << " " << vec << std::endl;
+}
+
 void print(Real val) {
 	std::cout << val << std::endl;
 }

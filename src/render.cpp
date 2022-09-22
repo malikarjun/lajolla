@@ -93,7 +93,7 @@ Image3 aux_render(const Scene &scene) {
         // convert eye space/world space depth into clip space depth needed for A-SVGF
         // TODO: not sure if near clip plane is 1
         // FIXME: Ans. Checked by debugging near clip plane is 1, but it is not enforced due to lack of camera frustum.
-        Real n = 1, f = -1;
+        Real n = 1, f = -std::numeric_limits<Real>::max();
         //
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -102,7 +102,7 @@ Image3 aux_render(const Scene &scene) {
         }
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                img(x, y) = (img(x, y) + Real(1))/(f - n);
+                img(x, y) = (img(x, y) - n)/(f - n);
             }
         }
 
@@ -132,24 +132,15 @@ Image3 path_render(const Scene &scene) {
 				Spectrum radiance = make_zero_spectrum();
 				int spp = scene.options.samples_per_pixel;
 				pcg32_state rng = init_pcg32(x*w + y);
-                Real depth = 0;
-                Vector3 normal;
-
-//                if (debug(x, y)) {
-//                    debug(0, 0);
-//                }
 
 				for (int s = 0; s < spp; s++) {
-					Spectrum L = path_tracing(scene, x, y, rng, depth, normal);
+					Spectrum L = path_tracing(scene, x, y, rng);
 					if (isfinite(L)) {
 						// Hacky: exclude NaNs in the rendering.
 						radiance += L;
 					}
 				}
 				img(x, y) = radiance / Real(spp);
-/*                depth_buffer[x][y] = depth;
-                normal_buffer[x][y] = normal;*/
-//				reporter.update(1);
 			}
 
 		}
@@ -159,14 +150,15 @@ Image3 path_render(const Scene &scene) {
 		ProgressReporter reporter(num_tiles_x * num_tiles_y);
 		parallel_for([&](const Vector2i &tile) {
 			// Use a different rng stream for each thread.
-			pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0]);
+//			pcg32_state rng = init_pcg32(tile[1] * num_tiles_x + tile[0]);
 			int x0 = tile[0] * tile_size;
 			int x1 = min(x0 + tile_size, w);
 			int y0 = tile[1] * tile_size;
 			int y1 = min(y0 + tile_size, h);
 			for (int y = y0; y < y1; y++) {
 				for (int x = x0; x < x1; x++) {
-					Spectrum radiance = make_zero_spectrum();
+                    pcg32_state rng = init_pcg32(x * w + y);
+                    Spectrum radiance = make_zero_spectrum();
 					int spp = scene.options.samples_per_pixel;
 					for (int s = 0; s < spp; s++) {
 						radiance += path_tracing(scene, x, y, rng);

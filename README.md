@@ -1,22 +1,11 @@
-# CSE 272 - Final Project
-UCSD CSE 272 Final Project - Photon Mapping and Thin-Film Interference.
+# Generate data for differentiable A-SVGF 
 
-Author: Ziyang Zhang and Mallikarjun Swamy
+Run the following script
 
-# Build
-All the dependencies are included. Use CMake to build.
-If you are on Unix systems, try
-```
-mkdir build
-cd build
-cmake ..
-```
+`python render.py -l {path_to_lajolla_executable} -s {path_to_scene_dir} -o {path_to_output_dir}
+`
 
-# Run the test scene
-```
-cd build
-./lajolla ../scenes/\photonmap_test/pm_pool.xml
-```
+Example
 
-Note: Since the pool scene might take long time to render, the `../scenes/photonmap_test/pm_cbox_basic.xml`
-can be rendered to sanity test the implementation.
+`python render.py -l /Users/home/lajolla_public/cmake-build-debug/lajolla -s /Users/home/lajolla_public/scenes/cbox -o /Users/home/pysvgf/data
+`

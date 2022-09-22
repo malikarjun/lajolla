@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 
         // automatically determine the integrator based on the output filename
         if (outputfile.find("depth") != std::string::npos) {
-            std::cout << "rendering depth buffer!" << '\n';
+            std::cout << "rendering depth and visibility buffer!" << '\n';
             scene.output_filename = outputfile;
             scene.options.integrator = Integrator::Depth;
         } else if (outputfile.find("normal") != std::string::npos) {
