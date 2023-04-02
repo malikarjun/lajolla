@@ -6,6 +6,7 @@ Author: Ziyang Zhang and Mallikarjun Swamy
 # Build
 All the dependencies are included. Use CMake to build.
 If you are on Unix systems, try
+
 ```
 mkdir build
 cd build
@@ -13,6 +14,7 @@ cmake ..
 ```
 
 # Run the test scene
+
 ```
 cd build
 ./lajolla ../scenes/\photonmap_test/pm_pool.xml
